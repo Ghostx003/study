@@ -1,0 +1,2861 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-accent="green"> <!-- Default theme -->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Study Calendar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* CSS Variables for Theming */
+        :root { /* This is the Light theme by default */
+            --bg-primary: #f9fafb;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f3f4f6;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --text-on-accent: #ffffff;
+            --border-primary: #e5e7eb;
+            --border-secondary: #d1d5db;
+            --accent-danger: #ef4444;
+        }
+        
+        html[data-theme="dark"] { /* This is now the Black theme */
+            --bg-primary: #000000; 
+            --bg-secondary: #121212; 
+            --bg-tertiary: #1E1E1E;
+            --text-primary: #f5f5f5; 
+            --text-secondary: #a3a3a3;
+            --border-primary: #27272a; 
+            --border-secondary: #3f3f46;
+        }
+
+        /* Accent Color Variables */
+        html[data-accent="green"] {
+            --accent-primary: #16a34a; --accent-hover: #15803d;
+            --accent-dday: #16a34a; --progress-circle-fg: #22c55e;
+            --accent-heatmap: 34, 197, 94;
+        }
+        html[data-accent="blue"] {
+            --accent-primary: #2563eb; --accent-hover: #1d4ed8;
+            --accent-dday: #2563eb; --progress-circle-fg: #3b82f6;
+            --accent-heatmap: 59, 130, 246;
+        }
+        html[data-accent="red"] {
+            --accent-primary: #dc2626; --accent-hover: #b91c1c;
+            --accent-dday: #dc2626; --progress-circle-fg: #ef4444;
+            --accent-heatmap: 239, 68, 68;
+        }
+        html[data-accent="purple"] {
+            --accent-primary: #9333ea; --accent-hover: #7e22ce;
+            --accent-dday: #9333ea; --progress-circle-fg: #a855f7;
+            --accent-heatmap: 168, 85, 247;
+        }
+        /* Translucent accent colors for dark mode glow effect */
+        html[data-accent="green"][data-theme="dark"] { --accent-primary_translucent: rgba(34, 197, 94, 0.4); }
+        html[data-accent="blue"][data-theme="dark"] { --accent-primary_translucent: rgba(59, 130, 246, 0.4); }
+        html[data-accent="red"][data-theme="dark"] { --accent-primary_translucent: rgba(239, 68, 68, 0.4); }
+        html[data-accent="purple"][data-theme="dark"] { --accent-primary_translucent: rgba(168, 85, 247, 0.4); }
+
+
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .calendar-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+        .day { transition: background-color 0.2s, color 0.2s, transform 0.2s, box-shadow 0.2s; }
+        .day:hover { background-color: var(--bg-tertiary); transform: scale(1.05); }
+        .day.selected { background-color: var(--accent-primary) !important; color: var(--text-on-accent) !important; font-weight: 600; box-shadow: 0 0 0 2px var(--accent-primary); }
+        .day.today { border: 2px solid var(--accent-primary); }
+        
+        .custom-checkbox:checked,
+        .custom-checkbox.completed { background-color: var(--accent-primary); border-color: var(--accent-primary); }
+        .custom-checkbox.completed::after {
+            content: '✓'; color: white; display: flex; align-items: center; justify-content: center;
+            font-size: 1rem; line-height: 1rem; font-weight: bold;
+        }
+
+        .subject-label.completed { text-decoration: line-through; color: var(--text-secondary); }
+        #subject-count-options input:checked + label { background-color: var(--accent-primary); color: var(--text-on-accent); border-color: var(--accent-primary); }
+        .progress-circle-bg { fill: none; stroke: var(--border-primary); }
+        .progress-circle-fg { fill: none; stroke: var(--progress-circle-fg); stroke-linecap: round; transform-origin: 50% 50%; transform: rotate(-90deg); transition: stroke-dashoffset 0.5s ease, stroke 0.2s; }
+        .progress-circle-text { font-size: 12px; font-weight: 600; fill: var(--text-primary); }
+        .sidebar-overlay { transition: background-color 0.3s; }
+        .sidebar { transform: translateX(-100%); transition: transform 0.3s ease-in-out; }
+        .sidebar.open { transform: translateX(0); }
+
+        /* General UI Element Styling using variables */
+        .bg-main { background-color: var(--bg-secondary); }
+        .border-main { border-color: var(--border-primary); }
+        .text-main { color: var(--text-primary); }
+        .text-subtle { color: var(--text-secondary); }
+        .btn-primary { background-color: var(--accent-primary); color: var(--text-on-accent); }
+        .btn-primary:hover { background-color: var(--accent-hover); }
+        .btn-secondary { background-color: var(--bg-tertiary); color: var(--text-primary); }
+        .btn-secondary:hover { background-color: var(--border-primary); }
+        .btn-dday { background-color: var(--accent-dday); color: var(--text-on-accent); }
+        .btn-dday:hover { opacity: 0.9; }
+        .input-main { background-color: var(--bg-tertiary); border-color: var(--border-secondary); color: var(--text-primary); }
+        .input-main:focus { border-color: var(--accent-primary); outline: none; box-shadow: 0 0 0 2px var(--accent-primary_translucent, var(--accent-primary)); }
+        .list-item-bg { background-color: var(--bg-tertiary); }
+        .hover\:bg-tertiary:hover { background-color: var(--bg-tertiary); }
+        .theme-btn.active { box-shadow: 0 0 0 3px var(--accent-primary); }
+        .dashboard-select {
+            background-color: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            font-weight: 600;
+            border-radius: 0.375rem;
+            border-width: 0;
+            padding: 0.5rem;
+        }
+        .dashboard-select:focus {
+            --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+            --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+            box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+            --tw-ring-color: var(--accent-primary);
+            --tw-ring-offset-color: var(--bg-secondary);
+            --tw-ring-offset-width: 2px;
+        }
+
+
+        /* Drag and Drop Styles */
+        .drag-handle { cursor: grab; }
+        .dragging { opacity: 0.5; background-color: var(--border-primary); }
+        .drag-over { border-top: 2px solid var(--accent-primary); }
+
+        /* Sub-task Styles */
+        .subtask-container { border-top: 1px solid var(--border-primary); }
+        .custom-subtask-checkbox { border: 2px solid var(--border-secondary); transition: background-color 0.2s, border-color 0.2s; }
+        .custom-subtask-checkbox.completed { background-color: var(--accent-primary); border-color: var(--accent-primary); }
+        .custom-subtask-checkbox.completed::after {
+            content: '✓'; color: white; display: flex; align-items: center; justify-content: center;
+            font-size: 0.7rem; line-height: 1rem; font-weight: bold;
+        }
+        .subtask-label.completed { text-decoration: line-through; color: var(--text-secondary); }
+        .delete-subtask-btn { opacity: 0; transition: opacity 0.2s; }
+        .subtask-item:hover .delete-subtask-btn { opacity: 1; }
+
+        /* Dashboard Styles */
+        .dashboard-card {
+             background-color: var(--bg-secondary);
+             border-radius: 1rem;
+             padding: 1.5rem;
+             box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+             display: flex;
+             flex-direction: column;
+             border: 1px solid var(--border-primary);
+             transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+        }
+        html[data-theme="dark"] .dashboard-card:hover {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 15px -2px var(--accent-primary_translucent, rgba(22, 163, 74, 0.4));
+            transform: translateY(-2px);
+        }
+
+        html[data-theme="dark"] p[style*="color: var(--accent-primary)"] {
+            text-shadow: 0 0 8px var(--accent-primary_translucent, rgba(22, 163, 74, 0.4));
+        }
+
+        .star-rating .star {
+            color: var(--border-secondary);
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .star-rating .star.selected,
+        .star-rating:hover .star:hover,
+        .star-rating .star:hover ~ .star {
+            color: #f59e0b; /* Amber 500 */
+        }
+        /* Invert star coloring direction on hover */
+        .star-rating:hover .star {
+            color: var(--border-secondary);
+        }
+        .star-rating:hover .star:hover,
+        .star-rating:hover .star:hover ~ .star {
+            color: #f59e0b;
+        }
+
+        #learning-time-chart-container {
+            position: relative;
+            width: 150px;
+            height: 150px;
+        }
+
+        #learning-time-chart {
+            transform: rotate(-90deg);
+        }
+        
+        #learning-time-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        #mini-cal-grid-days .day.today {
+            background-color: var(--accent-primary);
+            color: var(--text-on-accent);
+            font-weight: bold;
+        }
+        .empty-state-container {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Assignment Status Styles */
+        .status-btn {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            line-height: 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .status-upcoming { background-color: #3b82f633; color: #60a5fa; }
+        .status-in-progress { background-color: #f59e0b33; color: #fbbf24; }
+        .status-completed { background-color: #16a34a33; color: #4ade80; }
+
+        .assignment-item .delete-assignment-btn {
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .assignment-item:hover .delete-assignment-btn {
+            opacity: 1;
+        }
+
+
+        /* Heatmap Styles */
+        #heatmap-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+        }
+        .heatmap-cell {
+            aspect-ratio: 1 / 1;
+            width: 100%;
+            border-radius: 6px;
+            background-color: var(--bg-tertiary);
+            position: relative;
+        }
+        .heatmap-cell:hover .heatmap-tooltip {
+            display: block;
+        }
+        .heatmap-tooltip {
+            display: none;
+            position: absolute;
+            bottom: 120%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #1f2937;
+            color: #f9fafb;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 10;
+        }
+        .heatmap-level-1 { background-color: rgba(var(--accent-heatmap), 0.15); }
+        .heatmap-level-2 { background-color: rgba(var(--accent-heatmap), 0.30); }
+        .heatmap-level-3 { background-color: rgba(var(--accent-heatmap), 0.45); }
+        .heatmap-level-4 { background-color: rgba(var(--accent-heatmap), 0.60); }
+        .heatmap-level-5 { background-color: rgba(var(--accent-heatmap), 0.80); }
+        .heatmap-level-6 { background-color: rgba(var(--accent-heatmap), 1.0); }
+
+        /* Subject Ranker Styles */
+        .ranker-toggle-btn {
+            background-color: var(--bg-tertiary);
+            color: var(--text-secondary);
+        }
+        .ranker-toggle-btn.active {
+            background-color: var(--accent-primary);
+            color: var(--text-on-accent);
+        }
+        .ranker-item .progress-bar-bg {
+            background-color: var(--border-primary);
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+        .ranker-item .progress-bar {
+            height: 6px;
+            border-radius: 9999px;
+            background-color: var(--progress-circle-fg);
+            transition: width 0.5s ease;
+        }
+
+        /* --- Doubt Dashboard Styles --- */
+        .doubt-card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .doubt-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+        }
+        html[data-theme="dark"] .doubt-card:hover {
+             box-shadow: 0 0 20px -5px var(--accent-primary_translucent, rgba(22, 163, 74, 0.4));
+        }
+        .subject-tag {
+            background-color: var(--accent-primary_translucent, #16a34a26);
+            color: var(--accent-primary);
+        }
+        .editor-content {
+            min-height: 300px;
+            outline: none;
+            line-height: 1.6;
+        }
+        .editor-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+        }
+        .editor-content .todo-item {
+            display: flex;
+            align-items: center;
+            margin: 0.5rem 0;
+        }
+        .editor-content .todo-item input[type="checkbox"] {
+            width: 1.1rem;
+            height: 1.1rem;
+            margin-right: 0.75rem;
+            flex-shrink: 0;
+            accent-color: var(--accent-primary);
+        }
+         .editor-content .todo-item label {
+            flex-grow: 1;
+            outline: none;
+        }
+        .editor-content .todo-item.completed label {
+            text-decoration: line-through;
+            color: var(--text-secondary);
+        }
+        .editor-tool-btn {
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-weight: bold;
+            font-size: 1rem;
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+        }
+        .editor-tool-btn:hover {
+            background-color: var(--border-primary);
+        }
+        #record-btn.recording {
+            background-color: var(--accent-danger);
+        }
+        #record-btn.recording .mic-icon { display: none; }
+        #record-btn.recording .stop-icon { display: block; }
+        .stop-icon { display: none; }
+        #recording-timer { font-variant-numeric: tabular-nums; }
+        #audio-playback audio { height: 40px; width: 100%; }
+        .doubt-card.confirming .card-content {
+            opacity: 0.1;
+            filter: blur(4px);
+        }
+        .doubt-card .confirm-delete-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            z-index: 30;
+            border-radius: 0.75rem;
+        }
+        .doubt-card.confirming .confirm-delete-overlay { display: flex; }
+        .btn-danger {
+            background-color: var(--accent-danger);
+            color: white;
+        }
+        .least-studied-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+        .least-studied-table th, .least-studied-table td {
+            padding: 0.75rem 0.5rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-primary);
+        }
+         .least-studied-table th {
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body class="text-gray-800 dark:text-gray-300">
+
+    <!-- Sidebar -->
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-0 hidden z-40 sidebar-overlay"></div>
+    <div id="sidebar" class="fixed top-0 left-0 h-full w-64 bg-main shadow-lg z-50 sidebar p-4">
+        <h2 class="text-xl font-bold mb-6 text-main">Menu</h2>
+        <ul>
+            <li>
+                <button id="calendar-menu-btn" class="w-full text-left py-2 px-3 rounded-md hover:bg-tertiary font-semibold transition-colors text-main">
+                   Study Calendar
+                </button>
+            </li>
+            <li>
+                 <button id="dashboard-menu-btn" class="w-full text-left py-2 px-3 rounded-md hover:bg-tertiary font-semibold transition-colors text-main">
+                   Dashboard
+                </button>
+            </li>
+            <li>
+                 <button id="doubt-dashboard-menu-btn" class="w-full text-left py-2 px-3 rounded-md hover:bg-tertiary font-semibold transition-colors text-main">
+                   Doubt Manager
+                </button>
+            </li>
+            <li>
+                <button id="manage-subjects-menu-btn" class="w-full text-left py-2 px-3 rounded-md hover:bg-tertiary font-semibold transition-colors text-main mt-4 border-t border-main pt-4">
+                    Manage Subjects
+                </button>
+            </li>
+             <li>
+                <button id="theme-menu-btn" class="w-full text-left py-2 px-3 rounded-md hover:bg-tertiary font-semibold transition-colors text-main">
+                    Themes
+                </button>
+            </li>
+            <li class="mt-4 border-t border-main pt-4">
+                <button id="backup-menu-btn" class="w-full text-left py-2 px-3 rounded-md hover:bg-tertiary font-semibold transition-colors text-main">
+                    Backup Data
+                </button>
+            </li>
+            <li>
+                <button id="import-menu-btn" class="w-full text-left py-2 px-3 rounded-md hover:bg-tertiary font-semibold transition-colors text-main">
+                    Import Data
+                </button>
+            </li>
+        </ul>
+    </div>
+    
+    <!-- Main Calendar View -->
+    <div id="calendar-view">
+        <div class="flex items-start md:items-center justify-center min-h-screen p-4">
+            <div class="w-full max-w-4xl bg-main rounded-2xl shadow-lg p-6 md:p-8">
+                <!-- Header -->
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center space-x-2 w-28 justify-start">
+                         <button class="hamburger-menu-btn p-2 rounded-full hover:bg-tertiary transition-colors">
+                              <svg class="w-6 h-6 text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                         </button>
+                    </div>
+                    <div class="flex items-center">
+                        <button id="today-btn" class="px-4 py-2 btn-secondary rounded-lg transition-colors text-sm font-semibold shadow-sm mr-3">Today</button>
+                        <button id="prev-month" class="p-2 rounded-full hover:bg-tertiary transition-colors">
+                            <svg class="w-6 h-6 text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                        </button>
+                        <h2 id="month-year" class="text-xl md:text-2xl font-bold text-main mx-4 w-40 sm:w-48 text-center"></h2>
+                        <button id="next-month" class="p-2 rounded-full hover:bg-tertiary transition-colors">
+                            <svg class="w-6 h-6 text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        </button>
+                    </div>
+                    <div class="w-28 flex justify-end items-center space-x-2">
+                        <button id="header-doubt-btn" class="p-2 rounded-full hover:bg-tertiary transition-colors" title="Doubt Manager">
+                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-subtle" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.546-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        </button>
+                        <button id="d-day-btn" class="px-4 py-2 btn-dday rounded-lg transition-colors text-sm font-semibold shadow-sm w-24 text-center">
+                            Set Target
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="calendar-container">
+                    <div class="grid grid-cols-7 gap-1 text-center font-semibold text-subtle mb-2">
+                        <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+                    </div>
+                    <div id="calendar-grid" class="grid calendar-grid gap-1 md:gap-2"></div>
+                </div>
+
+                <div class="my-6 border-t border-main"></div>
+
+                <div id="subjects-container">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+                        <h3 id="selected-date-heading" class="text-lg md:text-xl font-bold text-main mb-2 md:mb-0">Select a date</h3>
+                        <div class="flex items-center space-x-2">
+                            <div id="progress-summary" class="flex items-center space-x-2 text-md font-semibold" style="color: var(--accent-primary);"></div>
+                            <button id="edit-subjects-btn" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm font-semibold shadow-sm">Edit</button>
+                            <button id="randomize-btn" class="px-4 py-2 btn-primary transition-colors text-sm font-semibold shadow-sm rounded-lg">Randomize</button>
+                        </div>
+                    </div>
+                    <div id="subjects-list" class="space-y-3">
+                        <p class="text-subtle">Your subjects for the selected day will appear here.</p>
+                    </div>
+                    <div id="completed-subjects-container" class="mt-8 hidden">
+                        <h4 class="text-lg font-bold text-main mb-3 border-b border-main pb-2">Subjects Done</h4>
+                        <div id="subjects-done-list" class="space-y-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard View -->
+    <div id="dashboard-view" class="p-4 md:p-8 hidden">
+        <div class="flex justify-between items-center mb-6">
+            <div class="flex items-center space-x-2">
+                <button class="hamburger-menu-btn p-2 rounded-full hover:bg-tertiary transition-colors">
+                    <svg class="w-6 h-6 text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+                <h1 class="text-3xl md:text-4xl font-bold text-main">Dashboard</h1>
+            </div>
+            <div id="dashboard-date" class="text-lg font-semibold text-subtle"></div>
+        </div>
+
+        <p class="text-xl text-subtle mb-8 -mt-4">Welcome back, Devi 👋</p>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Main Content Column -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Row 1: Most/Least -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Most Studied Card -->
+                    <div class="dashboard-card justify-between">
+                         <div class="flex justify-between items-start mb-4">
+                             <div>
+                                 <h2 class="text-lg font-bold text-main mb-1">Most Studied</h2>
+                                 <p id="most-studied-subject" class="text-2xl font-bold" style="color: var(--accent-primary);">Loading...</p>
+                                 <p id="most-studied-hours" class="text-subtle font-semibold">-- hours</p>
+                             </div>
+                             <select id="most-studied-period" class="dashboard-select">
+                                 <option value="all">All Time</option>
+                                 <option value="month">This Month</option>
+                                 <option value="week">This Week</option>
+                                 <option value="today">Today</option>
+                             </select>
+                         </div>
+                         <div>
+                             <p class="text-sm font-medium text-subtle mb-1">Rate this subject</p>
+                             <div id="most-studied-rating" class="star-rating flex space-x-1 text-2xl"></div>
+                         </div>
+                    </div>
+                    <!-- Least Studied Card -->
+                    <div class="dashboard-card justify-between">
+                        <div class="flex justify-between items-start mb-4">
+                             <div>
+                                 <h2 class="text-lg font-bold text-main mb-1">Least Studied</h2>
+                                 <p id="least-studied-subject" class="text-2xl font-bold" style="color: var(--accent-primary);">Loading...</p>
+                                 <p id="least-studied-hours" class="text-subtle font-semibold">-- hours</p>
+                             </div>
+                             <select id="least-studied-period" class="dashboard-select">
+                                 <option value="all">All Time</option>
+                                 <option value="month">This Month</option>
+                                 <option value="week">This Week</option>
+                                 <option value="today">Today</option>
+                             </select>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-subtle mb-1">Rate this subject</p>
+                            <div id="least-studied-rating" class="star-rating flex space-x-1 text-2xl"></div>
+                        </div>
+                    </div>
+                </div>
+
+                 <!-- Hours Activity & Daily Schedule -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Hours Activity Card -->
+                    <div class="dashboard-card">
+                        <div class="flex justify-between items-center mb-4">
+                            <div>
+                                <h2 class="text-lg font-bold text-main">Hours Activity</h2>
+                                <p id="hours-activity-change" class="text-sm font-semibold"></p>
+                            </div>
+                            <select id="hours-activity-period" class="dashboard-select">
+                                <option value="weekly">Weekly</option>
+                                <option value="monthly">Monthly</option>
+                            </select>
+                        </div>
+                        <div class="h-64 flex-grow">
+                            <canvas id="hours-activity-chart"></canvas>
+                        </div>
+                        <div id="hours-activity-summary" class="text-xs text-subtle mt-2 text-center"></div>
+                    </div>
+                     <!-- Daily Schedule Card -->
+                    <div class="dashboard-card">
+                        <h2 class="text-lg font-bold text-main mb-4">Daily Schedule</h2>
+                        <div id="daily-schedule-list" class="space-y-1 max-h-64 overflow-y-auto flex-grow"></div>
+                    </div>
+                </div>
+                
+                 <!-- Heatmap & Subject Ranker -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Heatmap Card -->
+                    <div class="dashboard-card">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-bold text-main">Study Activity</h2>
+                            <div class="flex items-center space-x-2">
+                                <button id="heatmap-prev-btn" class="p-1 rounded-full hover:bg-tertiary transition-colors">
+                                    <svg class="w-5 h-5 text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                                </button>
+                                <h3 id="heatmap-month-year" class="font-semibold text-main text-sm w-28 text-center"></h3>
+                                <button id="heatmap-next-btn" class="p-1 rounded-full hover:bg-tertiary transition-colors">
+                                    <svg class="w-5 h-5 text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="heatmap-container">
+                             <div class="grid grid-cols-7 text-center text-xs text-subtle font-semibold mb-2">
+                                 <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+                             </div>
+                             <div id="heatmap-grid" class="w-full"></div>
+                        </div>
+                    </div>
+                    <div class="space-y-6">
+                        <!-- Subject Ranker Card -->
+                     <div class="dashboard-card">
+                         <div class="flex justify-between items-center mb-4">
+                             <h2 class="text-lg font-bold text-main">Subject Rankings</h2>
+                             <div id="ranker-toggles" class="flex space-x-1 bg-main p-1 rounded-lg">
+                                 <button data-period="week" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">This Week</button>
+                                 <button data-period="month" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">This Month</button>
+                                 <button data-period="all" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">All Time</button>
+                             </div>
+                         </div>
+                         <h3 class="font-semibold text-main mb-2">Top 7 Subjects</h3>
+                         <div id="ranker-list" class="space-y-4"></div>
+                     </div>
+                     <!-- Least Studied -->
+                      <div class="dashboard-card">
+                         <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-bold text-main">Least Studied Subjects</h2>
+                            <div id="least-studied-toggles" class="flex space-x-1 bg-main p-1 rounded-lg">
+                                <button data-period="week" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">This Week</button>
+                                <button data-period="month" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">This Month</button>
+                            </div>
+                         </div>
+                         <div id="least-studied-container" class="overflow-y-auto">
+                             <table class="least-studied-table">
+                                 <thead>
+                                        <tr>
+                                            <th>Rank</th>
+                                            <th>Subject</th>
+                                            <th>Time Studied</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="least-studied-list"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Sidebar Column -->
+            <div class="lg:col-span-1 space-y-6">
+                 <!-- Learning Time Card -->
+                <div class="dashboard-card">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-bold text-main">Learning Time</h2>
+                        <select id="learning-time-period" class="dashboard-select">
+                            <option value="today">Today</option>
+                            <option value="week">This Week</option>
+                            <option value="month">This Month</option>
+                            <option value="all">All Time</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-center items-center my-4">
+                       <div id="learning-time-chart-container">
+                            <svg id="learning-time-chart" width="150" height="150" viewBox="0 0 36 36" class="w-full h-full"></svg>
+                            <div id="learning-time-text">
+                                <span id="learning-time-total" class="text-2xl font-bold text-main">0h</span>
+                            </div>
+                       </div>
+                    </div>
+                    <div id="learning-time-legend" class="mt-4 space-y-2"></div>
+                </div>
+                <!-- Courses Card -->
+                <div class="dashboard-card">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-bold text-main">Course You're Taking</h2>
+                    </div>
+                    <div id="course-list" class="space-y-4 max-h-80 overflow-y-auto flex-grow">
+                        <!-- Course items will be generated here -->
+                    </div>
+                </div>
+                  <!-- Assignments Card -->
+                  <div class="dashboard-card">
+                       <div class="flex justify-between items-center mb-4">
+                           <h2 class="text-lg font-bold text-main">Assignments</h2>
+                           <button id="add-assignment-btn" class="w-8 h-8 rounded-lg btn-primary flex items-center justify-center">
+                               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
+                           </button>
+                       </div>
+                       <div id="assignment-list" class="space-y-3 flex-grow"></div>
+                  </div>
+                  <!-- Mini Calendar Card -->
+                <div class="dashboard-card">
+                    <div class="flex justify-between items-center mb-3">
+                        <button id="mini-cal-prev" class="p-1 rounded-full hover:bg-tertiary transition-colors">
+                             <svg class="w-5 h-5 text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                        </button>
+                        <h3 id="mini-cal-month-year" class="font-bold text-main text-sm"></h3>
+                        <button id="mini-cal-next" class="p-1 rounded-full hover:bg-tertiary transition-colors">
+                            <svg class="w-5 h-5 text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-7 text-center text-xs text-subtle font-semibold mb-2">
+                        <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+                    </div>
+                    <div id="mini-cal-grid-days" class="grid grid-cols-7 text-center text-sm gap-1"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Doubt Dashboard View -->
+    <div id="doubt-dashboard-view" class="hidden">
+        <!-- DASHBOARD VIEW -->
+        <div id="doubt-dashboard-main">
+            <div class="max-w-7xl mx-auto p-4 md:p-8">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+                    <div class="flex items-center gap-4 w-full md:w-auto">
+                        <button class="hamburger-menu-btn p-2 rounded-full hover:bg-tertiary transition-colors">
+                             <svg class="w-6 h-6 text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                        </button>
+                        <h1 class="text-3xl md:text-4xl font-bold text-main whitespace-nowrap">Doubt Manager</h1>
+                    </div>
+                    <div class="flex items-center w-full md:w-auto gap-2">
+                        <input type="search" id="search-doubts" placeholder="Search doubts..." class="input-main w-full md:w-64 px-4 py-2 rounded-lg">
+                        <select id="filter-subject" class="input-main px-4 py-2 rounded-lg appearance-none">
+                            <option value="all">All Subjects</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="doubt-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <!-- Doubt cards will be injected here -->
+                </div>
+                
+                <div id="doubt-empty-state" class="text-center py-20 hidden">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                    </svg>
+                    <h3 class="mt-2 text-lg font-medium text-main">No Doubts Logged</h3>
+                    <p class="mt-1 text-sm text-subtle">Get started by adding a new doubt.</p>
+                </div>
+            </div>
+
+            <button id="add-doubt-btn" title="Add New Doubt" class="fixed bottom-8 right-8 w-14 h-14 rounded-full btn-primary flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+            </button>
+        </div>
+
+        <!-- EDITOR VIEW -->
+        <div id="doubt-editor-view" class="hidden max-w-4xl mx-auto p-4 md:p-8">
+            <div class="flex justify-between items-center mb-6">
+                <button id="back-to-doubt-dashboard-btn" class="btn-secondary font-semibold py-2 px-4 rounded-lg flex items-center space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                    <span>Back to Dashboard</span>
+                </button>
+                <button id="save-doubt-btn" class="btn-primary font-semibold py-2 px-4 rounded-lg flex items-center space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l7-7a1 1 0 00-1.414-1.414L10 12.586l-2.293-2.293z" /></svg>
+                    <span>Save</span>
+                </button>
+            </div>
+
+            <div class="bg-main p-6 md:p-8 rounded-2xl shadow-lg border border-main space-y-6">
+                <input type="text" id="doubt-title-editor" placeholder="Doubt Title..." class="text-3xl font-bold bg-transparent w-full focus:outline-none border-b-2 border-main pb-2">
+                
+                <!-- Rich Text Editor -->
+                <div>
+                    <h3 class="text-lg font-semibold mb-2 text-subtle">Explanation</h3>
+                    <div class="border border-main rounded-lg">
+                        <div class="flex items-center p-2 border-b border-main space-x-2 bg-tertiary rounded-t-lg flex-wrap">
+                        <button class="editor-tool-btn" data-command="bold" title="Bold"><b>B</b></button>
+                        <button class="editor-tool-btn" data-command="italic" title="Italic"><i>I</i></button>
+                        <button class="editor-tool-btn" data-command="insertUnorderedList" title="Bullet List">●</button>
+                        <button id="add-link-btn" class="editor-tool-btn" title="Add Link">🔗</button>
+                        <button id="add-todo-btn" class="editor-tool-btn" title="Add Checkbox">☑</button>
+                        </div>
+                        <div id="editor-content" contenteditable="true" class="p-4 editor-content"></div>
+                    </div>
+                    <p class="text-xs text-subtle mt-2">You can paste images directly into the editor.</p>
+                </div>
+
+                <!-- Voice Recording -->
+                <div>
+                    <h3 class="text-lg font-semibold mb-2 text-subtle">Voice Note</h3>
+                    <div class="p-4 border border-main rounded-lg bg-tertiary space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div id="recording-status" class="text-main font-medium">Add a voice note</div>
+                            <div id="recording-timer" class="text-sm font-mono text-subtle">00:00</div>
+                        </div>
+                        <div id="audio-controls" class="flex items-center gap-3">
+                            <button id="record-btn" title="Start/Stop Recording" class="flex items-center justify-center w-12 h-12 rounded-full btn-primary transition-colors duration-200 flex-shrink-0">
+                                <svg class="mic-icon w-6 h-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+                                <div class="stop-icon w-5 h-5 bg-white rounded-sm"></div>
+                            </button>
+                            <div id="audio-playback" class="flex-grow min-w-0"></div>
+                        </div>
+                    </div>
+                    <p class="text-xs text-subtle mt-2">Voice notes are not saved automatically. You must click the download link that appears to save the file.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- MODAL for adding/editing doubt title and subject -->
+        <div id="doubt-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4">
+            <div class="bg-main rounded-2xl shadow-xl p-6 w-full max-w-md">
+                <h4 id="doubt-modal-title" class="text-xl font-bold mb-4 text-main">Add New Doubt</h4>
+                <div class="space-y-4">
+                    <div>
+                        <label for="doubt-title-input" class="block text-sm font-medium text-subtle mb-1">Doubt Title</label>
+                        <input type="text" id="doubt-title-input" class="w-full p-2 border rounded-lg input-main">
+                    </div>
+                    <div>
+                        <label for="doubt-subject-select" class="block text-sm font-medium text-subtle mb-1">Subject</label>
+                        <select id="doubt-subject-select" class="w-full p-2 border rounded-lg input-main"></select>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button id="cancel-doubt-modal" class="px-5 py-2 btn-secondary rounded-lg transition-colors font-semibold">Cancel</button>
+                    <button id="confirm-doubt-modal" class="px-5 py-2 btn-primary rounded-lg transition-colors font-semibold">Create & Edit</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- MODALS -->
+    <div id="assignment-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-main rounded-2xl shadow-xl p-6 w-full max-w-sm">
+            <h4 id="assignment-modal-title" class="text-xl font-bold mb-4 text-main">Add Assignment</h4>
+            <div class="space-y-4">
+                <div>
+                    <label for="assignment-title-input" class="block text-sm font-medium text-subtle mb-1">Title</label>
+                    <input type="text" id="assignment-title-input" class="w-full p-2 border rounded-lg input-main">
+                </div>
+                <div>
+                    <label for="assignment-due-date-input" class="block text-sm font-medium text-subtle mb-1">Due Date</label>
+                    <input type="datetime-local" id="assignment-due-date-input" class="w-full p-2 border rounded-lg input-main" style="color-scheme: dark;">
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button id="cancel-assignment" class="px-5 py-2 btn-secondary rounded-lg transition-colors font-semibold">Cancel</button>
+                <button id="confirm-assignment" class="px-5 py-2 btn-primary rounded-lg transition-colors font-semibold">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="theme-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4"><div class="bg-main rounded-2xl shadow-xl p-6 w-full max-w-sm"><h4 class="text-xl font-bold mb-5 text-main">Customize Theme</h4><div id="theme-options"></div><div class="flex justify-end mt-6"><button id="close-theme-modal" class="px-5 py-2 btn-secondary rounded-lg transition-colors font-semibold">Close</button></div></div></div>
+    <div id="d-day-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4"><div class="bg-main rounded-2xl shadow-xl p-6 w-full max-w-xs"><h4 class="text-xl font-bold mb-4 text-main">Set Target Date</h4><input type="date" id="d-day-input" class="w-full p-2 border rounded-lg mb-4 text-center text-lg input-main text-main" style="color-scheme: dark;"><div class="flex justify-end space-x-3"><button id="cancel-d-day" class="px-5 py-2 btn-secondary rounded-lg transition-colors font-semibold">Cancel</button><button id="confirm-d-day" class="px-5 py-2 btn-primary rounded-lg transition-colors font-semibold">Save</button></div></div></div>
+    
+    <div id="manage-subjects-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-main rounded-2xl shadow-xl p-6 w-full max-w-md">
+            <h4 class="text-xl font-bold mb-2 text-main">Manage Your Subjects</h4>
+            <p class="text-sm text-subtle mb-4">Add, remove, and select which subjects are in your active study pool.</p>
+            
+            <div class="flex gap-2 mb-4">
+                <input type="text" id="new-subject-input" placeholder="Add new subject..." class="w-full p-2 border rounded-lg input-main">
+                <button id="add-new-subject-btn" class="px-4 py-2 btn-primary rounded-lg font-semibold">Add</button>
+            </div>
+
+            <div id="master-subjects-list" class="space-y-2 mb-6 max-h-64 overflow-y-auto p-1 border-y border-main py-3"></div>
+            
+            <div class="flex justify-end space-x-3">
+                <button id="close-manage-subjects" class="px-5 py-2 btn-secondary rounded-lg transition-colors font-semibold">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="edit-subjects-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4"><div class="bg-main rounded-2xl shadow-xl p-6 w-full max-w-md"><h4 class="text-xl font-bold mb-5 text-main">Edit Subjects for Today</h4><div id="subjects-checklist" class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6 max-h-64 overflow-y-auto p-1"></div><div class="flex justify-end space-x-3"><button id="cancel-edit-subjects" class="px-5 py-2 btn-secondary rounded-lg transition-colors font-semibold">Cancel</button><button id="confirm-edit-subjects" class="px-5 py-2 btn-primary rounded-lg transition-colors font-semibold">Save Changes</button></div></div></div>
+    <div id="edit-hours-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4"><div class="bg-main rounded-2xl shadow-xl p-6 w-full max-w-xs"><h4 class="text-xl font-bold mb-2 text-main">Set Hours for</h4><p id="edit-hours-subject-name" class="text-md mb-4 text-subtle"></p><input type="number" id="hours-input" min="1" class="w-full p-2 border rounded-lg mb-4 text-center text-lg input-main"><div class="flex justify-end space-x-3"><button id="cancel-edit-hours" class="px-5 py-2 btn-secondary rounded-lg transition-colors font-semibold">Cancel</button><button id="confirm-edit-hours" class="px-5 py-2 btn-primary rounded-lg transition-colors font-semibold">Save</button></div></div></div>
+    <div id="randomize-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4"><div class="bg-main rounded-2xl shadow-xl p-6 w-full max-w-md"><h4 class="text-xl font-bold mb-5 text-main">How many subjects today?</h4><div id="subject-count-options" class="grid grid-cols-4 sm:grid-cols-5 gap-3 mb-6"></div><div class="flex justify-end space-x-3"><button id="cancel-randomize" class="px-5 py-2 btn-secondary rounded-lg transition-colors font-semibold">Cancel</button><button id="confirm-randomize" class="px-5 py-2 btn-primary rounded-lg transition-colors font-semibold">Generate</button></div></div></div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        let masterSubjectsList = [];
+        let activeSubjectPool = [];
+
+        // --- CACHED SELECTORS ---
+        const calendarView = document.getElementById('calendar-view');
+        const dashboardView = document.getElementById('dashboard-view');
+        const doubtDashboardView = document.getElementById('doubt-dashboard-view');
+        
+        const dashboardDateEl = document.getElementById('dashboard-date');
+        const calendarGrid = document.getElementById('calendar-grid');
+        const monthYearEl = document.getElementById('month-year');
+        const prevMonthBtn = document.getElementById('prev-month');
+        const nextMonthBtn = document.getElementById('next-month');
+        const selectedDateHeading = document.getElementById('selected-date-heading');
+        const progressSummary = document.getElementById('progress-summary');
+        const subjectsList = document.getElementById('subjects-list');
+        const subjectsDoneList = document.getElementById('subjects-done-list');
+        const completedSubjectsContainer = document.getElementById('completed-subjects-container');
+        const randomizeBtn = document.getElementById('randomize-btn');
+        const randomizeModal = document.getElementById('randomize-modal');
+        const subjectCountOptions = document.getElementById('subject-count-options');
+        const cancelRandomizeBtn = document.getElementById('cancel-randomize');
+        const confirmRandomizeBtn = document.getElementById('confirm-randomize');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        const todayBtn = document.getElementById('today-btn');
+        const themeMenuBtn = document.getElementById('theme-menu-btn');
+        const themeModal = document.getElementById('theme-modal');
+        const themeOptions = document.getElementById('theme-options');
+        const closeThemeModalBtn = document.getElementById('close-theme-modal');
+        const dDayBtn = document.getElementById('d-day-btn');
+        const dDayModal = document.getElementById('d-day-modal');
+        const dDayInput = document.getElementById('d-day-input');
+        const cancelDDayBtn = document.getElementById('cancel-d-day');
+        const confirmDDayBtn = document.getElementById('confirm-d-day');
+        const manageSubjectsMenuBtn = document.getElementById('manage-subjects-menu-btn');
+        const manageSubjectsModal = document.getElementById('manage-subjects-modal');
+        const masterSubjectsHtmlList = document.getElementById('master-subjects-list');
+        const closeManageSubjectsBtn = document.getElementById('close-manage-subjects');
+        const newSubjectInput = document.getElementById('new-subject-input');
+        const addNewSubjectBtn = document.getElementById('add-new-subject-btn');
+        const editSubjectsBtn = document.getElementById('edit-subjects-btn');
+        const editSubjectsModal = document.getElementById('edit-subjects-modal');
+        const subjectsChecklist = document.getElementById('subjects-checklist');
+        const cancelEditSubjectsBtn = document.getElementById('cancel-edit-subjects');
+        const confirmEditSubjectsBtn = document.getElementById('confirm-edit-subjects');
+        const editHoursModal = document.getElementById('edit-hours-modal');
+        const cancelEditHoursBtn = document.getElementById('cancel-edit-hours');
+        const confirmEditHoursBtn = document.getElementById('confirm-edit-hours');
+        const hoursInput = document.getElementById('hours-input');
+        const editHoursSubjectName = document.getElementById('edit-hours-subject-name');
+        
+        // --- NAVIGATION SELECTORS ---
+        const calendarMenuBtn = document.getElementById('calendar-menu-btn');
+        const dashboardMenuBtn = document.getElementById('dashboard-menu-btn');
+        const doubtDashboardMenuBtn = document.getElementById('doubt-dashboard-menu-btn');
+        const headerDoubtBtn = document.getElementById('header-doubt-btn');
+        const backupMenuBtn = document.getElementById('backup-menu-btn');
+        const importMenuBtn = document.getElementById('import-menu-btn');
+
+        // Dashboard Selectors
+        const mostStudiedSubjectEl = document.getElementById('most-studied-subject');
+        const mostStudiedHoursEl = document.getElementById('most-studied-hours');
+        const mostStudiedRatingEl = document.getElementById('most-studied-rating');
+        const mostStudiedPeriodSelect = document.getElementById('most-studied-period');
+        const leastStudiedSubjectEl = document.getElementById('least-studied-subject');
+        const leastStudiedHoursEl = document.getElementById('least-studied-hours');
+        const leastStudiedRatingEl = document.getElementById('least-studied-rating');
+        const leastStudiedPeriodSelect = document.getElementById('least-studied-period');
+        const learningTimePeriodSelect = document.getElementById('learning-time-period');
+        const learningTimeChart = document.getElementById('learning-time-chart');
+        const learningTimeTotal = document.getElementById('learning-time-total');
+        const learningTimeLegend = document.getElementById('learning-time-legend');
+        const hoursActivityPeriodSelect = document.getElementById('hours-activity-period');
+        const hoursActivityChartCanvas = document.getElementById('hours-activity-chart');
+        const hoursActivityChangeEl = document.getElementById('hours-activity-change');
+        const hoursActivitySummaryEl = document.getElementById('hours-activity-summary');
+        const dailyScheduleList = document.getElementById('daily-schedule-list');
+        const miniCalMonthYear = document.getElementById('mini-cal-month-year');
+        const miniCalGridDays = document.getElementById('mini-cal-grid-days');
+        const miniCalPrevBtn = document.getElementById('mini-cal-prev');
+        const miniCalNextBtn = document.getElementById('mini-cal-next');
+        const courseListEl = document.getElementById('course-list');
+        const assignmentListEl = document.getElementById('assignment-list');
+        const addAssignmentBtn = document.getElementById('add-assignment-btn');
+        const assignmentModal = document.getElementById('assignment-modal');
+        const assignmentModalTitle = document.getElementById('assignment-modal-title');
+        const assignmentTitleInput = document.getElementById('assignment-title-input');
+        const assignmentDueDateInput = document.getElementById('assignment-due-date-input');
+        const cancelAssignmentBtn = document.getElementById('cancel-assignment');
+        const confirmAssignmentBtn = document.getElementById('confirm-assignment');
+        const heatmapGrid = document.getElementById('heatmap-grid');
+        const heatmapMonthYear = document.getElementById('heatmap-month-year');
+        const heatmapPrevBtn = document.getElementById('heatmap-prev-btn');
+        const heatmapNextBtn = document.getElementById('heatmap-next-btn');
+        const rankerToggles = document.getElementById('ranker-toggles');
+        const rankerList = document.getElementById('ranker-list');
+        const leastStudiedToggles = document.getElementById('least-studied-toggles');
+        const leastStudiedList = document.getElementById('least-studied-list');
+
+
+        // --- STATE MANAGEMENT ---
+        let currentDate = new Date();
+        let selectedDate = new Date();
+        let studyData = JSON.parse(localStorage.getItem('studyData')) || {};
+        let subjectRatings = JSON.parse(localStorage.getItem('subjectRatings')) || {};
+        let courseData = JSON.parse(localStorage.getItem('courseData')) || {};
+        let assignments = JSON.parse(localStorage.getItem('assignments')) || [];
+        let editingAssignmentId = null;
+        let subjectToEdit = null;
+        let targetDate = null; // Holds 'YYYY-MM-DD'
+        let draggedSubjectName = null;
+        let openSubTaskPanels = new Set();
+        const subjectColors = ['#34d399', '#60a5fa', '#fbbf24', '#c084fc', '#f87171', '#fb923c', '#818cf8', '#a78bfa', '#f472b6', '#2dd4bf', '#a3e635', '#fde047', '#93c5fd'];
+        let hoursActivityChart = null;
+        let miniCalDate = new Date();
+        let heatmapDate = new Date(); 
+
+        
+        // --- DATA HELPERS ---
+        const saveMasterSubjectsList = () => localStorage.setItem('masterSubjectsList', JSON.stringify(masterSubjectsList));
+        const saveActiveSubjectPool = () => localStorage.setItem('activeSubjectPool', JSON.stringify(activeSubjectPool));
+        const saveStudyData = () => localStorage.setItem('studyData', JSON.stringify(studyData));
+        const saveSubjectRatings = () => localStorage.setItem('subjectRatings', JSON.stringify(subjectRatings));
+        const saveCourseData = () => localStorage.setItem('courseData', JSON.stringify(courseData));
+        const saveAssignments = () => localStorage.setItem('assignments', JSON.stringify(assignments));
+        
+        const formatDateKey = (date) => {
+            const year = date.getFullYear();
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const day = date.getDate().toString().padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+        const formatCompletionTime = (isoString) => {
+            if (!isoString) return '';
+            return new Date(isoString).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        };
+        const getSubjectColor = (subjectName) => {
+            let hash = 0;
+            for (let i = 0; i < subjectName.length; i++) {
+                hash = subjectName.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const index = Math.abs(hash % subjectColors.length);
+            return subjectColors[index];
+        };
+
+        const formatMinutesToHoursAndMinutes = (totalMinutes) => {
+            if (isNaN(totalMinutes) || totalMinutes <= 0) return '0m';
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = Math.round(totalMinutes % 60);
+            if (hours > 0 && minutes > 0) {
+                return `${hours}h ${minutes}m`;
+            } else if (hours > 0) {
+                return `${hours}h`;
+            } else {
+                return `${minutes}m`;
+            }
+        };
+        
+        const calculateCompletedMinutesForDay = (dateKey, specificSubject = null) => {
+            const daySubjects = studyData[dateKey] || [];
+            let completedMinutes = 0;
+            daySubjects.forEach(subject => {
+                if (specificSubject && subject.name !== specificSubject) return;
+
+                const subjectTotalMinutes = subject.hours * 60;
+                if (subject.completed) {
+                    completedMinutes += subjectTotalMinutes;
+                } else if (subject.subTasks && subject.subTasks.length > 0) {
+                    const completedSubTasks = subject.subTasks.filter(t => t.completed).length;
+                    if (completedSubTasks > 0) {
+                        const minutesPerSubTask = subjectTotalMinutes / subject.subTasks.length;
+                        completedMinutes += completedSubTasks * minutesPerSubTask;
+                    }
+                }
+            });
+            return completedMinutes;
+        };
+
+        const calculateTotalMinutesForDay = (dateKey) => {
+            const daySubjects = studyData[dateKey] || [];
+            return daySubjects.reduce((total, subject) => total + (subject.hours * 60), 0);
+        };
+
+
+        // --- VIEW TOGGLING ---
+        const showCalendarView = () => {
+            dashboardView.classList.add('hidden');
+            doubtDashboardView.classList.add('hidden');
+            calendarView.classList.remove('hidden');
+        };
+        const showDashboardView = () => {
+            calendarView.classList.add('hidden');
+            doubtDashboardView.classList.add('hidden');
+            dashboardView.classList.remove('hidden');
+            renderDashboard();
+        };
+        const showDoubtDashboardView = () => {
+            calendarView.classList.add('hidden');
+            dashboardView.classList.add('hidden');
+            doubtDashboardView.classList.remove('hidden');
+        };
+        
+        // --- NAVIGATION LISTENERS ---
+        calendarMenuBtn.addEventListener('click', () => { closeSidebar(); showCalendarView(); });
+        dashboardMenuBtn.addEventListener('click', () => { closeSidebar(); showDashboardView(); });
+        doubtDashboardMenuBtn.addEventListener('click', () => { closeSidebar(); showDoubtDashboardView(); });
+        headerDoubtBtn.addEventListener('click', () => { showDoubtDashboardView(); });
+
+
+        // --- THEME LOGIC ---
+        const baseThemes = [ { name: 'light', displayName: 'Light' }, { name: 'dark', displayName: 'Dark' } ];
+        const accentColors = [
+            { name: 'green', color: '#16a34a' }, { name: 'blue', color: '#2563eb' },
+            { name: 'red', color: '#dc2626' }, { name: 'purple', color: '#9333ea' }
+        ];
+        const applyBaseTheme = (themeName) => {
+            document.documentElement.setAttribute('data-theme', themeName);
+            localStorage.setItem('studyBaseTheme', themeName);
+            updateActiveThemeButtons();
+        };
+        const applyAccentColor = (accentName) => {
+            document.documentElement.setAttribute('data-accent', accentName);
+            localStorage.setItem('studyAccentColor', accentName);
+            updateActiveThemeButtons();
+            if(!dashboardView.classList.contains('hidden')) {
+                renderHeatmap();
+                renderHoursActivity();
+            }
+        };
+        const updateActiveThemeButtons = () => {
+            const currentTheme = document.documentElement.dataset.theme;
+            const currentAccent = document.documentElement.dataset.accent;
+            document.querySelectorAll('.theme-btn-base').forEach(btn => btn.classList.toggle('active', btn.dataset.theme === currentTheme));
+            document.querySelectorAll('.theme-btn-accent').forEach(btn => btn.classList.toggle('active', btn.dataset.accent === currentAccent));
+        }
+        const populateThemeModal = () => {
+            themeOptions.innerHTML = '';
+            const baseContainer = document.createElement('div');
+            baseContainer.innerHTML = `<h5 class="text-sm font-bold text-subtle mb-3">Base Theme</h5>`;
+            const baseButtons = document.createElement('div');
+            baseButtons.classList.add('grid', 'grid-cols-2', 'gap-4', 'mb-6');
+            baseThemes.forEach(theme => {
+                const btn = document.createElement('button');
+                btn.textContent = theme.displayName;
+                btn.dataset.theme = theme.name;
+                btn.classList.add('w-full', 'py-3', 'btn-secondary', 'rounded-lg', 'font-semibold', 'transition-shadow', 'theme-btn', 'theme-btn-base');
+                btn.addEventListener('click', () => applyBaseTheme(theme.name));
+                baseButtons.appendChild(btn);
+            });
+            baseContainer.appendChild(baseButtons);
+            themeOptions.appendChild(baseContainer);
+
+            const accentContainer = document.createElement('div');
+            accentContainer.innerHTML = `<h5 class="text-sm font-bold text-subtle mb-3">Accent Color</h5>`;
+            const accentSwatches = document.createElement('div');
+            accentSwatches.classList.add('flex', 'items-center', 'justify-around', 'gap-4');
+            accentColors.forEach(accent => {
+                const swatch = document.createElement('button');
+                swatch.dataset.accent = accent.name;
+                swatch.classList.add('w-12', 'h-12', 'rounded-full', 'transition-shadow', 'theme-btn', 'theme-btn-accent');
+                swatch.style.backgroundColor = accent.color;
+                swatch.addEventListener('click', () => applyAccentColor(accent.name));
+                accentSwatches.appendChild(swatch);
+            });
+            accentContainer.appendChild(accentSwatches);
+            themeOptions.appendChild(accentContainer);
+            updateActiveThemeButtons();
+        };
+        themeMenuBtn.addEventListener('click', () => { closeSidebar(); themeModal.classList.remove('hidden'); });
+        closeThemeModalBtn.addEventListener('click', () => themeModal.classList.add('hidden'));
+        themeModal.addEventListener('click', (e) => { if (e.target === themeModal) themeModal.classList.add('hidden'); });
+
+
+        // --- CALENDAR LOGIC ---
+        const loadSubjectLists = () => {
+            const defaultSubjects = ['COA', 'CN', 'OS', 'DL', 'TOC', 'Maths', 'DM', 'Apti', 'Compiler', 'DBMS', 'C', 'DSA', 'Algo'];
+            masterSubjectsList = JSON.parse(localStorage.getItem('masterSubjectsList')) || defaultSubjects;
+            activeSubjectPool = JSON.parse(localStorage.getItem('activeSubjectPool')) || [...masterSubjectsList];
+
+            if(JSON.parse(localStorage.getItem('masterSubjectsList')) === null) {
+                saveMasterSubjectsList();
+                saveActiveSubjectPool();
+            }
+        };
+
+        const createProgressCircle = (progress, radius, strokeWidth, textContent) => {
+            const circumference = 2 * Math.PI * radius;
+            const offset = circumference - (progress / 100) * circumference;
+            const size = (radius + strokeWidth) * 2;
+            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            svg.setAttribute("width", size);
+            svg.setAttribute("height", size);
+            svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
+            svg.classList.add('flex-shrink-0');
+            const bgCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            bgCircle.classList.add('progress-circle-bg');
+            bgCircle.setAttribute("cx", radius + strokeWidth);
+            bgCircle.setAttribute("cy", radius + strokeWidth);
+            bgCircle.setAttribute("r", radius);
+            bgCircle.setAttribute("stroke-width", strokeWidth);
+            const fgCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            fgCircle.classList.add('progress-circle-fg');
+            fgCircle.setAttribute("cx", radius + strokeWidth);
+            fgCircle.setAttribute("cy", radius + strokeWidth);
+            fgCircle.setAttribute("r", radius);
+            fgCircle.setAttribute("stroke-width", strokeWidth);
+            fgCircle.setAttribute("stroke-dasharray", circumference);
+            fgCircle.setAttribute("stroke-dashoffset", offset);
+            svg.appendChild(bgCircle);
+            svg.appendChild(fgCircle);
+            if(textContent){
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.classList.add('progress-circle-text');
+                text.setAttribute("x", "50%");
+                text.setAttribute("y", "50%");
+                text.setAttribute("dy", ".3em");
+                text.setAttribute("text-anchor", "middle");
+                text.textContent = textContent;
+                svg.appendChild(text);
+            }
+            return svg;
+        };
+
+        const renderCalendar = () => {
+            calendarGrid.innerHTML = '';
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            monthYearEl.textContent = `${currentDate.toLocaleString('default', { month: 'long' })} ${year}`;
+
+            const firstDayOfMonth = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            
+            for (let i = 0; i < firstDayOfMonth; i++) calendarGrid.appendChild(document.createElement('div'));
+            
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dayCell = document.createElement('div');
+                dayCell.textContent = i;
+                dayCell.classList.add('day', 'p-2', 'md:p-3', 'text-center', 'cursor-pointer', 'rounded-full', 'transition-colors', 'duration-200');
+                const dayDate = new Date(year, month, i);
+                const today = new Date();
+                
+                if (i === today.getDate() && month === today.getMonth() && year === today.getFullYear()) dayCell.classList.add('today');
+                if (formatDateKey(dayDate) === formatDateKey(selectedDate)) dayCell.classList.add('selected');
+                
+                dayCell.addEventListener('click', () => {
+                    selectedDate = dayDate;
+                    renderCalendar();
+                    renderSubjects();
+                });
+                calendarGrid.appendChild(dayCell);
+            }
+        };
+
+        const toggleMainSubjectCompletion = (subjectName) => {
+            const dateKey = formatDateKey(selectedDate);
+            const subjectData = studyData[dateKey]?.find(s => s.name === subjectName);
+            if (!subjectData) return;
+
+            subjectData.completed = !subjectData.completed;
+            if (subjectData.completed) {
+                subjectData.completionTime = new Date().toISOString();
+                if (subjectData.subTasks) subjectData.subTasks.forEach(t => t.completed = true);
+            } else {
+                subjectData.completionTime = null;
+                if (subjectData.subTasks) subjectData.subTasks.forEach(t => t.completed = false);
+            }
+            saveStudyData();
+            renderSubjects();
+        };
+
+        const renderSubjects = () => {
+            const dateKey = formatDateKey(selectedDate);
+            selectedDateHeading.textContent = selectedDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            if (!studyData[dateKey] || !Array.isArray(studyData[dateKey])) studyData[dateKey] = [];
+            const daySubjects = studyData[dateKey];
+            
+            daySubjects.forEach(s => { if (!s.subTasks) s.subTasks = []; });
+
+            subjectsList.innerHTML = '';
+            subjectsDoneList.innerHTML = '';
+            progressSummary.innerHTML = '';
+
+            if (daySubjects.length === 0) {
+                subjectsList.innerHTML = `<p class="text-subtle">No subjects defined for this day. Click 'Randomize' or 'Edit' to start.</p>`;
+                completedSubjectsContainer.classList.add('hidden');
+                progressSummary.innerHTML = `<span>Total Hours Completed: 0 / 0</span>`;
+                progressSummary.appendChild(createProgressCircle(0, 14, 3, null));
+                return;
+            }
+
+            let pendingSubjectsExist = false;
+            
+            daySubjects.forEach(data => {
+                const subject = data.name;
+                const subjectEntryWrapper = document.createElement('div');
+                subjectEntryWrapper.classList.add('list-item-bg', 'rounded-lg', 'overflow-hidden');
+                subjectEntryWrapper.draggable = true;
+                subjectEntryWrapper.dataset.subjectName = subject;
+                addDragEvents(subjectEntryWrapper);
+
+                const listItem = document.createElement('div');
+                listItem.classList.add('flex', 'items-center', 'p-3');
+                const handle = document.createElement('span');
+                handle.classList.add('drag-handle', 'mr-3', 'text-subtle');
+                handle.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M7 2a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/></svg>`;
+
+                const checkbox = document.createElement('div');
+                checkbox.classList.add('custom-checkbox', 'w-5', 'h-5', 'border-2', 'border-secondary', 'rounded', 'cursor-pointer', 'mr-4', 'flex-shrink-0');
+                checkbox.addEventListener('click', (e) => { e.stopPropagation(); toggleMainSubjectCompletion(subject); });
+
+                const subjectDetailsContainer = document.createElement('div');
+                subjectDetailsContainer.classList.add('flex-grow', 'flex', 'flex-col', 'cursor-pointer');
+                subjectDetailsContainer.addEventListener('click', () => toggleMainSubjectCompletion(subject));
+
+                const subjectLabel = document.createElement('label');
+                subjectLabel.textContent = subject;
+                subjectLabel.classList.add('subject-label', 'cursor-pointer', 'transition-colors');
+                subjectDetailsContainer.appendChild(subjectLabel);
+                
+                let subTaskProgress = 0;
+                if (data.subTasks && data.subTasks.length > 0) {
+                    const completedSubTasks = data.subTasks.filter(t => t.completed).length;
+                    subTaskProgress = (completedSubTasks / data.subTasks.length) * 100;
+                    if (subTaskProgress === 100 && !data.completed) {
+                        data.completed = true; data.completionTime = new Date().toISOString(); saveStudyData();
+                    } else if (subTaskProgress < 100 && data.completed) {
+                         data.completed = false; data.completionTime = null; saveStudyData();
+                    }
+                }
+
+                const progress = data.completed ? 100 : subTaskProgress;
+                const circle = createProgressCircle(progress, 12, 3, data.hours);
+                circle.classList.add('cursor-pointer');
+                circle.addEventListener('click', (e) => { e.stopPropagation(); openEditHoursModal(subject); });
+                
+                const subTaskContainer = document.createElement('div');
+                subTaskContainer.classList.add('subtask-container', 'p-4', 'pt-3', 'hidden');
+
+                const renderSubTasks = () => {
+                    subTaskContainer.innerHTML = '';
+                    const totalMinutes = data.hours * 60;
+                    const hasSubTasks = data.subTasks && data.subTasks.length > 0;
+                    const minutesPerTask = hasSubTasks ? totalMinutes / data.subTasks.length : 0;
+                    
+                    data.subTasks.forEach((task, index) => {
+                        const subTaskItem = document.createElement('div');
+                        subTaskItem.classList.add('flex', 'items-center', 'subtask-item', 'py-1');
+                        const subTaskCheckbox = document.createElement('div');
+                        subTaskCheckbox.classList.add('custom-subtask-checkbox', 'w-4', 'h-4', 'rounded-sm', 'cursor-pointer', 'mr-3', 'flex-shrink-0', 'flex', 'items-center', 'justify-center');
+                        if (task.completed) subTaskCheckbox.classList.add('completed');
+                        subTaskCheckbox.addEventListener('click', (e) => { 
+                            e.stopPropagation(); 
+                            task.completed = !task.completed; 
+                            saveStudyData(); 
+                            renderSubjects(); 
+                        });
+                        
+                        const subTaskLabel = document.createElement('span');
+                        subTaskLabel.textContent = task.text;
+                        subTaskLabel.classList.add('subtask-label', 'flex-grow', 'text-sm', 'text-main', 'focus:outline-none', 'focus:bg-tertiary', 'rounded-sm', 'px-1', '-ml-1');
+                        if (task.completed) subTaskLabel.classList.add('completed');
+                        subTaskLabel.contentEditable = true;
+                        subTaskLabel.addEventListener('blur', () => {
+                            const newText = subTaskLabel.textContent.trim();
+                            if (newText && newText !== task.text) { task.text = newText; saveStudyData(); } 
+                            else { subTaskLabel.textContent = task.text; }
+                        });
+                        subTaskLabel.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); subTaskLabel.blur(); }});
+                        
+                        const timeDisplay = document.createElement('span');
+                        timeDisplay.textContent = `(${formatMinutesToHoursAndMinutes(minutesPerTask)})`;
+                        timeDisplay.classList.add('text-xs', 'text-subtle', 'ml-2', 'flex-shrink-0');
+                        
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.innerHTML = '&times;';
+                        deleteBtn.classList.add('delete-subtask-btn', 'text-subtle', 'font-bold', 'text-lg', 'px-2', 'rounded-full', 'hover:bg-red-500', 'hover:text-white', 'ml-1');
+                        deleteBtn.addEventListener('click', (e) => { 
+                            e.stopPropagation(); 
+                            data.subTasks.splice(index, 1); 
+                            saveStudyData(); 
+                            renderSubjects(); 
+                        });
+                        
+                        subTaskItem.append(subTaskCheckbox, subTaskLabel, timeDisplay, deleteBtn);
+                        subTaskContainer.appendChild(subTaskItem);
+                    });
+
+                    const addSubTaskWrapper = document.createElement('div');
+                    addSubTaskWrapper.classList.add('flex', 'items-center', 'mt-2', 'pl-1');
+                    const plusIcon = document.createElement('span');
+                    plusIcon.textContent = '+';
+                    plusIcon.classList.add('mr-3', 'text-subtle', 'font-semibold');
+                    const addSubTaskInput = document.createElement('input');
+                    addSubTaskInput.type = 'text';
+                    addSubTaskInput.placeholder = 'Add task & press Enter';
+                    addSubTaskInput.classList.add('bg-transparent', 'w-full', 'focus:outline-none', 'text-sm', 'text-main', 'placeholder-text-secondary');
+                    addSubTaskInput.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' && addSubTaskInput.value.trim() !== '') {
+                            e.preventDefault();
+                            data.subTasks.push({ text: addSubTaskInput.value.trim(), completed: false });
+                            saveStudyData();
+                            renderSubjects();
+                        }
+                    });
+                    addSubTaskWrapper.append(plusIcon, addSubTaskInput);
+                    subTaskContainer.appendChild(addSubTaskWrapper);
+                }
+                
+                const toggleArrow = document.createElement('button');
+                toggleArrow.classList.add('p-1', 'rounded-full', 'hover:bg-tertiary', 'transition-colors', 'ml-auto');
+                toggleArrow.innerHTML = `<svg class="w-6 h-6 text-subtle transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>`;
+                toggleArrow.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    subTaskContainer.classList.toggle('hidden');
+                    toggleArrow.querySelector('svg').classList.toggle('rotate-180');
+                    if (subTaskContainer.classList.contains('hidden')) { openSubTaskPanels.delete(subject); } 
+                    else { openSubTaskPanels.add(subject); }
+                });
+
+                if (openSubTaskPanels.has(subject)) {
+                    subTaskContainer.classList.remove('hidden');
+                    toggleArrow.querySelector('svg').classList.add('rotate-180');
+                }
+                
+                renderSubTasks();
+                listItem.append(handle, checkbox, subjectDetailsContainer, circle, toggleArrow);
+                subjectEntryWrapper.append(listItem, subTaskContainer);
+                
+                if (data.completed) {
+                    checkbox.classList.add('completed');
+                    subjectLabel.classList.add('completed');
+                    if (data.completionTime) {
+                        const timeLabel = document.createElement('span');
+                        timeLabel.textContent = `Completed at ${formatCompletionTime(data.completionTime)}`;
+                        timeLabel.classList.add('text-xs', 'text-subtle', 'mt-1');
+                        subjectDetailsContainer.appendChild(timeLabel);
+                    }
+                    subjectsDoneList.appendChild(subjectEntryWrapper);
+                } else {
+                    pendingSubjectsExist = true;
+                    subjectsList.appendChild(subjectEntryWrapper);
+                }
+            });
+            
+            if (!pendingSubjectsExist) subjectsList.innerHTML = `<p class="text-subtle">All subjects completed for today! 🎉</p>`;
+            subjectsDoneList.children.length > 0 ? completedSubjectsContainer.classList.remove('hidden') : completedSubjectsContainer.classList.add('hidden');
+            
+            const totalMinutes = calculateTotalMinutesForDay(dateKey);
+            const completedMinutes = calculateCompletedMinutesForDay(dateKey);
+            const totalHours = totalMinutes / 60;
+            const completedHours = completedMinutes / 60;
+
+            const overallProgress = totalHours > 0 ? (completedHours / totalHours) * 100 : 0;
+            const summaryText = document.createElement('span');
+            summaryText.textContent = `Hours: ${completedHours.toFixed(1)} / ${totalHours.toFixed(1)}`;
+            const overallCircle = createProgressCircle(overallProgress, 14, 3, null);
+            progressSummary.append(summaryText, overallCircle);
+        };
+
+        // --- DRAG & DROP ---
+        function addDragEvents(item) {
+            item.addEventListener('dragstart', handleDragStart); item.addEventListener('dragend', handleDragEnd);
+            item.addEventListener('dragover', handleDragOver); item.addEventListener('dragleave', handleDragLeave);
+            item.addEventListener('drop', handleDrop);
+        }
+        function handleDragStart(e) { draggedSubjectName = this.dataset.subjectName; this.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; }
+        function handleDragEnd() { this.classList.remove('dragging'); document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over')); draggedSubjectName = null; }
+        function handleDragOver(e) { e.preventDefault(); if (this.dataset.subjectName !== draggedSubjectName) this.classList.add('drag-over'); }
+        function handleDragLeave() { this.classList.remove('drag-over'); }
+        function handleDrop(e) {
+            e.preventDefault(); this.classList.remove('drag-over');
+            const droppedOnSubjectName = this.dataset.subjectName;
+            if (draggedSubjectName === droppedOnSubjectName) return;
+            const dateKey = formatDateKey(selectedDate);
+            const subjects = studyData[dateKey];
+            const fromIndex = subjects.findIndex(s => s.name === draggedSubjectName);
+            const toIndex = subjects.findIndex(s => s.name === droppedOnSubjectName);
+            if (fromIndex > -1 && toIndex > -1) {
+                const [removed] = subjects.splice(fromIndex, 1);
+                subjects.splice(toIndex, 0, removed);
+                saveStudyData(); renderSubjects();
+            }
+        }
+        
+        // --- MODALS AND BUTTONS ---
+        prevMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 1); renderCalendar(); });
+        nextMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 1); renderCalendar(); });
+        todayBtn.addEventListener('click', () => { currentDate = new Date(); selectedDate = new Date(); renderCalendar(); renderSubjects(); });
+        const openSidebar = () => { sidebarOverlay.classList.remove('hidden'); setTimeout(() => { sidebar.classList.add('open'); sidebarOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)'; }, 10); };
+        const closeSidebar = () => { sidebar.classList.remove('open'); sidebarOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0)'; setTimeout(() => sidebarOverlay.classList.add('hidden'), 300); };
+        
+        document.querySelectorAll('.hamburger-menu-btn').forEach(btn => {
+            btn.addEventListener('click', openSidebar);
+        });
+
+        sidebarOverlay.addEventListener('click', closeSidebar);
+        const openRandomizeModal = () => {
+            subjectCountOptions.innerHTML = '';
+            for (let i = 1; i <= activeSubjectPool.length; i++) {
+                const optionWrapper = document.createElement('div');
+                const radio = document.createElement('input');
+                radio.type = 'radio'; radio.name = 'subject-count'; radio.id = `count-${i}`; radio.value = i; radio.classList.add('hidden');
+                if (i === 1) radio.checked = true;
+                const label = document.createElement('label');
+                label.htmlFor = `count-${i}`; label.textContent = i;
+                label.classList.add('block', 'text-center', 'p-3', 'border-2', 'border-secondary', 'rounded-lg', 'cursor-pointer', 'hover:border-green-500', 'transition-colors', 'duration-200');
+                optionWrapper.append(radio, label);
+                subjectCountOptions.appendChild(optionWrapper);
+            }
+            randomizeModal.classList.remove('hidden');
+        };
+        const closeRandomizeModal = () => randomizeModal.classList.add('hidden');
+        randomizeBtn.addEventListener('click', openRandomizeModal);
+        cancelRandomizeBtn.addEventListener('click', closeRandomizeModal);
+        randomizeModal.addEventListener('click', (e) => { if (e.target === randomizeModal) closeRandomizeModal(); });
+        confirmRandomizeBtn.addEventListener('click', () => {
+            const selectedOption = document.querySelector('input[name="subject-count"]:checked');
+            if (!selectedOption) return;
+            const num = parseInt(selectedOption.value, 10);
+            const shuffled = [...activeSubjectPool].sort(() => 0.5 - Math.random());
+            const randomSubjects = shuffled.slice(0, num);
+            const dateKey = formatDateKey(selectedDate);
+            studyData[dateKey] = randomSubjects.map(subject => ({ name: subject, hours: 1, completed: false, completionTime: null, subTasks: [] }));
+            saveStudyData(); renderSubjects(); closeRandomizeModal();
+        });
+
+        const openManageSubjectsModal = () => {
+            masterSubjectsHtmlList.innerHTML = '';
+            masterSubjectsList.forEach(subject => {
+                const wrapper = document.createElement('div');
+                wrapper.classList.add('flex', 'items-center', 'justify-between', 'py-1');
+                
+                const mainContent = document.createElement('div');
+                mainContent.classList.add('flex', 'items-center', 'flex-grow');
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `master-edit-${subject}`;
+                checkbox.value = subject;
+                checkbox.classList.add('w-4', 'h-4', 'text-green-600', 'bg-gray-100', 'border-gray-300', 'rounded', 'focus:ring-green-500', 'subject-pool-checkbox');
+                if (activeSubjectPool.includes(subject)) checkbox.checked = true;
+
+                const label = document.createElement('label');
+                label.htmlFor = `master-edit-${subject}`;
+                label.textContent = subject;
+                label.classList.add('ml-3', 'text-main');
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.innerHTML = '&times;';
+                deleteBtn.dataset.subject = subject;
+                deleteBtn.title = `Delete ${subject}`;
+                deleteBtn.classList.add('text-subtle', 'font-bold', 'text-xl', 'px-2', 'rounded-full', 'hover:bg-red-500', 'hover:text-white', 'ml-auto', 'delete-master-subject');
+
+                mainContent.append(checkbox, label);
+                wrapper.append(mainContent, deleteBtn);
+                masterSubjectsHtmlList.appendChild(wrapper);
+            });
+            manageSubjectsModal.classList.remove('hidden');
+        };
+
+        const closeManageSubjectsModal = () => {
+            const checkedSubjects = Array.from(document.querySelectorAll('.subject-pool-checkbox:checked')).map(cb => cb.value);
+            activeSubjectPool = checkedSubjects;
+            saveActiveSubjectPool();
+            syncCourseData();
+            // We may need to re-render dashboard components that depend on the active pool
+            if (!dashboardView.classList.contains('hidden')) {
+                renderDashboard();
+            }
+            if (!doubtDashboardView.classList.contains('hidden')) {
+                // To-do: re-init doubt dashboard if needed
+            }
+             manageSubjectsModal.classList.add('hidden');
+        }
+
+        manageSubjectsMenuBtn.addEventListener('click', () => { closeSidebar(); openManageSubjectsModal(); });
+        closeManageSubjectsBtn.addEventListener('click', closeManageSubjectsModal);
+        addNewSubjectBtn.addEventListener('click', () => {
+            const newSubject = newSubjectInput.value.trim();
+            if (newSubject && !masterSubjectsList.find(s => s.toLowerCase() === newSubject.toLowerCase())) {
+                masterSubjectsList.push(newSubject);
+                activeSubjectPool.push(newSubject); // Also add to active pool by default
+                saveMasterSubjectsList();
+                saveActiveSubjectPool();
+                newSubjectInput.value = '';
+                openManageSubjectsModal(); // Refresh modal view
+            } else if (!newSubject) {
+                alert("Subject name cannot be empty.");
+            } else {
+                alert("Subject already exists.");
+            }
+        });
+        masterSubjectsHtmlList.addEventListener('click', (e) => {
+            if (e.target.classList.contains('delete-master-subject')) {
+                const subjectToDelete = e.target.dataset.subject;
+                if (confirm(`Are you sure you want to permanently delete "${subjectToDelete}"? This cannot be undone.`)) {
+                    masterSubjectsList = masterSubjectsList.filter(s => s !== subjectToDelete);
+                    activeSubjectPool = activeSubjectPool.filter(s => s !== subjectToDelete);
+                    saveMasterSubjectsList();
+                    saveActiveSubjectPool();
+                    openManageSubjectsModal(); // Refresh
+                }
+            }
+        });
+
+        const openEditSubjectsModal = () => {
+            subjectsChecklist.innerHTML = '';
+            const dateKey = formatDateKey(selectedDate);
+            const currentSubjectNames = (studyData[dateKey] || []).map(s => s.name);
+            activeSubjectPool.forEach(subject => {
+                const wrapper = document.createElement('div'); wrapper.classList.add('flex', 'items-center');
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox'; checkbox.id = `edit-${subject}`; checkbox.value = subject;
+                checkbox.classList.add('w-4', 'h-4', 'text-green-600', 'bg-gray-100', 'border-gray-300', 'rounded', 'focus:ring-green-500');
+                if (currentSubjectNames.includes(subject)) checkbox.checked = true;
+                const label = document.createElement('label');
+                label.htmlFor = `edit-${subject}`; label.textContent = subject;
+                label.classList.add('ml-2', 'text-sm', 'font-medium', 'text-main');
+                wrapper.append(checkbox, label);
+                subjectsChecklist.appendChild(wrapper);
+            });
+            editSubjectsModal.classList.remove('hidden');
+        };
+        const closeEditSubjectsModal = () => editSubjectsModal.classList.add('hidden');
+        editSubjectsBtn.addEventListener('click', openEditSubjectsModal);
+        cancelEditSubjectsBtn.addEventListener('click', closeEditSubjectsModal);
+        editSubjectsModal.addEventListener('click', (e) => { if (e.target === editSubjectsModal) closeEditSubjectsModal(); });
+        confirmEditSubjectsBtn.addEventListener('click', () => {
+            const dateKey = formatDateKey(selectedDate);
+            const currentDayData = studyData[dateKey] || [];
+            const newDayData = [];
+            subjectsChecklist.querySelectorAll('input:checked').forEach(checkbox => {
+                const subjectName = checkbox.value;
+                const existingData = currentDayData.find(s => s.name === subjectName);
+                newDayData.push(existingData || { name: subjectName, hours: 1, completed: false, completionTime: null, subTasks: [] });
+            });
+            studyData[dateKey] = newDayData;
+            saveStudyData(); renderSubjects(); closeEditSubjectsModal();
+        });
+        const openEditHoursModal = (subject) => {
+            subjectToEdit = subject;
+            const dateKey = formatDateKey(selectedDate);
+            const subjectData = studyData[dateKey].find(s => s.name === subjectToEdit);
+            if (!subjectData) return;
+            editHoursSubjectName.textContent = subjectToEdit;
+            hoursInput.value = subjectData.hours;
+            editHoursModal.classList.remove('hidden'); hoursInput.focus();
+        };
+        const closeEditHoursModal = () => { editHoursModal.classList.add('hidden'); subjectToEdit = null; };
+        cancelEditHoursBtn.addEventListener('click', closeEditHoursModal);
+        editHoursModal.addEventListener('click', (e) => { if(e.target === editHoursModal) closeEditHoursModal(); });
+        const handleConfirmHours = () => {
+             const newHours = parseInt(hoursInput.value, 10);
+            if (subjectToEdit && !isNaN(newHours) && newHours > 0) {
+                const dateKey = formatDateKey(selectedDate);
+                const subjectData = studyData[dateKey].find(s => s.name === subjectToEdit);
+                if (subjectData) subjectData.hours = newHours;
+                saveStudyData(); renderSubjects();
+            }
+            closeEditHoursModal();
+        };
+        confirmEditHoursBtn.addEventListener('click', handleConfirmHours);
+        hoursInput.addEventListener('keydown', e => { if(e.key === 'Enter') { e.preventDefault(); handleConfirmHours(); } });
+
+        const loadTargetDate = () => { targetDate = localStorage.getItem('dDayTarget'); };
+        const saveTargetDate = () => { if (targetDate) localStorage.setItem('dDayTarget', targetDate); else localStorage.removeItem('dDayTarget'); };
+        const updateDDayCounter = () => {
+            if (!targetDate) { dDayBtn.textContent = 'Set Target'; return; }
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const parts = targetDate.split('-');
+            const target = new Date(parts[0], parts[1] - 1, parts[2]);
+            const diffDays = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            if (diffDays > 0) dDayBtn.textContent = `D-${diffDays}`;
+            else if (diffDays === 0) dDayBtn.textContent = 'D-Day!';
+            else dDayBtn.textContent = `D+${Math.abs(diffDays)}`;
+        };
+        const openDDayModal = () => { dDayModal.classList.remove('hidden'); dDayInput.value = targetDate || ''; };
+        const closeDDayModal = () => dDayModal.classList.add('hidden');
+        dDayBtn.addEventListener('click', openDDayModal);
+        cancelDDayBtn.addEventListener('click', closeDDayModal);
+        dDayModal.addEventListener('click', (e) => { if (e.target === dDayModal) closeDDayModal(); });
+        confirmDDayBtn.addEventListener('click', () => { if (dDayInput.value) { targetDate = dDayInput.value; saveTargetDate(); updateDDayCounter(); } closeDDayModal(); });
+
+
+        // --- DASHBOARD LOGIC ---
+        const calculatePeriodStats = (period) => {
+            const stats = {};
+            const dateKeys = getDateKeysForPeriod(period);
+
+            dateKeys.forEach(dateKey => {
+                if (studyData[dateKey]) {
+                     studyData[dateKey].flat().forEach(subject => {
+                        if (subject.completed) {
+                            stats[subject.name] = (stats[subject.name] || 0) + subject.hours;
+                        }
+                    });
+                }
+            });
+            return stats;
+        };
+
+        const getDateKeysForPeriod = (period) => {
+            const now = new Date();
+            let dateKeysToInclude = [];
+
+            if (period === 'all') {
+                return Object.keys(studyData);
+            }
+            if (period === 'today') {
+                dateKeysToInclude.push(formatDateKey(now));
+            } else if (period === 'week') {
+                const dayOfWeek = now.getDay();
+                for (let i = 0; i <= 6; i++) {
+                    const date = new Date(now);
+                    date.setDate(now.getDate() - dayOfWeek + i);
+                    dateKeysToInclude.push(formatDateKey(date));
+                }
+            } else if (period === 'month') {
+                const year = now.getFullYear();
+                const month = now.getMonth();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                for (let i = 1; i <= daysInMonth; i++) {
+                    const date = new Date(year, month, i);
+                    dateKeysToInclude.push(formatDateKey(date));
+                }
+            }
+            return dateKeysToInclude;
+        }
+
+        const calculateTotalStudyStats = () => {
+            const stats = {};
+            Object.values(studyData).flat().forEach(subject => {
+                if (subject.completed) {
+                    stats[subject.name] = (stats[subject.name] || 0) + subject.hours;
+                }
+            });
+            return stats;
+        };
+
+        const renderStarRating = (container, subjectName) => {
+            container.innerHTML = '';
+            if (!subjectName) return; 
+            const currentRating = subjectRatings[subjectName] || 0;
+            for (let i = 1; i <= 5; i++) {
+                const star = document.createElement('span');
+                star.classList.add('star');
+                star.innerHTML = '★';
+                if (i <= currentRating) star.classList.add('selected');
+                star.dataset.value = i;
+                star.addEventListener('click', () => {
+                    subjectRatings[subjectName] = i;
+                    saveSubjectRatings();
+                    renderStarRating(container, subjectName);
+                });
+                container.appendChild(star);
+            }
+        };
+        
+        const updateMostLeastCards = () => {
+            const mostPeriod = mostStudiedPeriodSelect.value;
+            const leastPeriod = leastStudiedPeriodSelect.value;
+            
+            const mostStats = calculatePeriodStats(mostPeriod);
+            const leastStats = calculatePeriodStats(leastPeriod);
+
+            const mostStudiedSubjects = Object.keys(mostStats);
+            if (mostStudiedSubjects.length > 0) {
+                const sorted = mostStudiedSubjects.sort((a, b) => mostStats[b] - mostStats[a]);
+                const mostStudied = sorted[0];
+                mostStudiedSubjectEl.textContent = mostStudied;
+                mostStudiedHoursEl.textContent = `${mostStats[mostStudied]} hours`;
+                renderStarRating(mostStudiedRatingEl, mostStudied);
+            } else {
+                mostStudiedSubjectEl.textContent = "N/A";
+                mostStudiedHoursEl.textContent = "No data";
+                mostStudiedRatingEl.innerHTML = '';
+            }
+
+            const leastStudiedSubjects = Object.keys(leastStats).filter(s => leastStats[s] > 0);
+            if (leastStudiedSubjects.length > 0) {
+                 const sorted = leastStudiedSubjects.sort((a, b) => leastStats[a] - leastStats[b]);
+                const leastStudied = sorted[0];
+                leastStudiedSubjectEl.textContent = leastStudied;
+                leastStudiedHoursEl.textContent = `${leastStats[leastStudied]} hours`;
+                renderStarRating(leastStudiedRatingEl, leastStudied);
+            } else {
+                leastStudiedSubjectEl.textContent = "N/A";
+                leastStudiedHoursEl.textContent = "No data";
+                leastStudiedRatingEl.innerHTML = '';
+            }
+        };
+        
+        const updateLearningTimeChart = () => {
+            const period = learningTimePeriodSelect.value;
+            const stats = calculatePeriodStats(period);
+            const entries = Object.entries(stats);
+            const total = entries.reduce((sum, [, hours]) => sum + hours, 0);
+
+            learningTimeTotal.textContent = `${total}h`;
+            learningTimeChart.innerHTML = '';
+            learningTimeLegend.innerHTML = '';
+
+            if (entries.length === 0) {
+                learningTimeLegend.innerHTML = '<p class="text-sm text-subtle text-center">No completed subjects for this period.</p>';
+                return;
+            }
+
+            let cumulativePercent = 0;
+            entries.forEach(([subject, hours]) => {
+                const percent = (hours / total) * 100;
+                const color = getSubjectColor(subject);
+                
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute('cx', '18'); circle.setAttribute('cy', '18'); circle.setAttribute('r', '15.9155');
+                circle.setAttribute('fill', 'transparent'); circle.setAttribute('stroke', color);
+                circle.setAttribute('stroke-width', '3.8');
+                circle.setAttribute('stroke-dasharray', `${percent} ${100 - percent}`);
+                circle.setAttribute('stroke-dashoffset', `-${cumulativePercent}`);
+                
+                const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
+                title.textContent = `${subject}: ${hours}h (${percent.toFixed(1)}%)`;
+                circle.appendChild(title);
+
+                learningTimeChart.appendChild(circle);
+                
+                cumulativePercent += percent;
+
+                const legendItem = document.createElement('div');
+                legendItem.classList.add('flex', 'items-center', 'justify-between', 'text-sm');
+                legendItem.innerHTML = `
+                    <div class="flex items-center">
+                        <span class="w-3 h-3 rounded-full mr-2" style="background-color: ${color};"></span>
+                        <span class="text-main">${subject}</span>
+                    </div>
+                    <span class="font-bold text-subtle">${hours}h</span>`;
+                learningTimeLegend.appendChild(legendItem);
+            });
+        };
+
+        const renderHoursActivity = () => {
+            const period = hoursActivityPeriodSelect.value;
+            const now = new Date();
+            
+            let labels = [];
+            let currentPeriodData = [];
+            let prevPeriodData = [];
+            
+            if (period === 'weekly') {
+                labels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                const dayOfWeek = now.getDay();
+                
+                for (let i = 0; i < 7; i++) {
+                    const currentDate = new Date(now);
+                    currentDate.setDate(now.getDate() - dayOfWeek + i);
+                    const prevDate = new Date(currentDate);
+                    prevDate.setDate(currentDate.getDate() - 7);
+
+                    const currentKey = formatDateKey(currentDate);
+                    const prevKey = formatDateKey(prevDate);
+
+                    currentPeriodData[i] = calculateCompletedMinutesForDay(currentKey) / 60;
+                    prevPeriodData[i] = calculateCompletedMinutesForDay(prevKey) / 60;
+                }
+            } else { // monthly
+                const year = now.getFullYear();
+                const month = now.getMonth();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const daysInPrevMonth = new Date(year, month, 0).getDate();
+                labels = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
+                for (let i = 1; i <= daysInMonth; i++) {
+                    const currentDate = new Date(year, month, i);
+                    const prevDate = new Date(year, month - 1, i);
+                    
+                    const currentKey = formatDateKey(currentDate);
+                     let prevKey;
+                    if (i <= daysInPrevMonth) { prevKey = formatDateKey(prevDate); }
+                    
+                    currentPeriodData[i-1] = calculateCompletedMinutesForDay(currentKey) / 60;
+                    prevPeriodData[i-1] = prevKey ? calculateCompletedMinutesForDay(prevKey) / 60 : 0;
+                }
+            }
+            
+            const currentTotal = currentPeriodData.reduce((a, b) => a + b, 0);
+            const prevTotal = prevPeriodData.reduce((a, b) => a + b, 0);
+            
+            if(prevTotal > 0) {
+                const change = ((currentTotal - prevTotal) / prevTotal) * 100;
+                if (change >= 0) {
+                    hoursActivityChangeEl.textContent = `+${change.toFixed(0)}% increase than last ${period === 'weekly' ? 'week' : 'month'}`;
+                    hoursActivityChangeEl.style.color = 'var(--progress-circle-fg)';
+                } else {
+                    hoursActivityChangeEl.textContent = `${change.toFixed(0)}% decrease than last ${period === 'weekly' ? 'week' : 'month'}`;
+                    hoursActivityChangeEl.style.color = 'var(--accent-danger)';
+                }
+            } else if (currentTotal > 0) {
+                 hoursActivityChangeEl.textContent = 'Great start!';
+                 hoursActivityChangeEl.style.color = 'var(--progress-circle-fg)';
+            } else {
+                hoursActivityChangeEl.textContent = `No activity last ${period === 'weekly' ? 'week' : 'month'}`;
+                hoursActivityChangeEl.style.color = 'var(--text-secondary)';
+            }
+            
+            let maxDay = '', minDay = '';
+            let maxHours = -1, minHours = Infinity;
+            
+            let activeDaysCount = 0;
+            currentPeriodData.forEach((hours, index) => {
+                if (hours > 0) activeDaysCount++;
+                if (hours > maxHours) {
+                    maxHours = hours;
+                    maxDay = labels[index];
+                }
+                if (hours < minHours && hours > 0) {
+                    minHours = hours;
+                    minDay = labels[index];
+                }
+            });
+
+            if(activeDaysCount > 1) {
+                hoursActivitySummaryEl.innerHTML = `Most active on <strong>${maxDay}</strong> (${maxHours.toFixed(1)}h), least on <strong>${minDay}</strong> (${minHours.toFixed(1)}h).`;
+            } else if (activeDaysCount === 1) {
+                hoursActivitySummaryEl.innerHTML = `You studied for ${maxHours.toFixed(1)}h on <strong>${maxDay}</strong>.`;
+            } else {
+                 hoursActivitySummaryEl.innerHTML = '';
+            }
+
+            if (hoursActivityChart) {
+                hoursActivityChart.destroy();
+            }
+
+            const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-primary');
+            const ctx = hoursActivityChartCanvas.getContext('2d');
+            const gradient = ctx.createLinearGradient(0, 0, 0, hoursActivityChartCanvas.offsetHeight);
+            gradient.addColorStop(0, accentColor);
+            gradient.addColorStop(1, accentColor + '33');
+
+            hoursActivityChart = new Chart(hoursActivityChartCanvas, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Hours Studied',
+                        data: currentPeriodData,
+                        backgroundColor: gradient,
+                        borderColor: accentColor,
+                        borderWidth: 2,
+                        borderRadius: 4,
+                        borderSkipped: false,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    const date = new Date(now);
+                                    if (period === 'weekly') {
+                                         const dayOfWeek = now.getDay();
+                                         date.setDate(now.getDate() - dayOfWeek + context[0].dataIndex);
+                                    } else {
+                                         date.setDate(context[0].dataIndex + 1);
+                                    }
+                                    return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+                                },
+                                label: function(context) {
+                                    return `Studied: ${context.raw.toFixed(1)} hours`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'var(--border-primary)' }, ticks: { color: 'var(--text-secondary)' } },
+                        x: { grid: { display: false }, ticks: { color: 'var(--text-secondary)' } }
+                    }
+                }
+            });
+        };
+        
+        const renderDailySchedule = () => {
+            dailyScheduleList.innerHTML = '';
+            const todayKey = formatDateKey(new Date());
+            const todaysSubjects = studyData[todayKey] || [];
+            
+            if (todaysSubjects.length > 0) {
+                todaysSubjects.forEach(subject => {
+                    const item = document.createElement('div');
+                    item.classList.add('flex', 'items-center', 'p-2', 'rounded-lg', 'hover:bg-tertiary', 'cursor-pointer');
+                    item.dataset.subject = subject.name;
+                    const iconColor = getSubjectColor(subject.name);
+                    item.innerHTML = `
+                        <div class="w-10 h-10 rounded-lg flex items-center justify-center mr-3 flex-shrink-0" style="background-color: ${iconColor}33;">
+                            <span style="color: ${iconColor}; font-weight: bold;">${subject.name.substring(0,2).toUpperCase()}</span>
+                        </div>
+                        <div class="flex-grow">
+                            <p class="font-semibold text-main">${subject.name}</p>
+                            <p class="text-sm text-subtle">${subject.hours} hour${subject.hours > 1 ? 's' : ''} scheduled</p>
+                        </div>
+                        <svg class="w-5 h-5 text-subtle transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    `;
+                    const subTaskDetails = document.createElement('div');
+                    subTaskDetails.classList.add('hidden', 'w-full', 'pl-12', 'pt-2', 'text-sm', 'space-y-1');
+
+                    if(subject.subTasks.length > 0) {
+                         subject.subTasks.forEach(task => {
+                             subTaskDetails.innerHTML += `<p class="text-subtle">${task.completed ? '✓' : '○'} ${task.text}</p>`;
+                         });
+                    } else {
+                        subTaskDetails.innerHTML = `<p class="text-xs text-subtle">No sub-tasks defined.</p>`;
+                    }
+
+                    item.addEventListener('click', () => {
+                        subTaskDetails.classList.toggle('hidden');
+                        item.querySelector('svg').classList.toggle('rotate-90');
+                    });
+                    
+                    const wrapper = document.createElement('div');
+                    wrapper.appendChild(item);
+                    wrapper.appendChild(subTaskDetails);
+                    dailyScheduleList.appendChild(wrapper);
+
+                });
+            } else {
+                dailyScheduleList.innerHTML = '<div class="empty-state-container"><p class="text-sm text-subtle text-center">No subjects scheduled for today.</p></div>';
+            }
+        };
+        
+        const renderMiniCalendar = () => {
+            miniCalGridDays.innerHTML = '';
+            const year = miniCalDate.getFullYear();
+            const month = miniCalDate.getMonth();
+            miniCalMonthYear.textContent = `${miniCalDate.toLocaleString('default', { month: 'long' })} ${year}`;
+            const firstDayOfMonth = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const today = new Date();
+
+            for (let i = 0; i < firstDayOfMonth; i++) miniCalGridDays.appendChild(document.createElement('div'));
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dayCell = document.createElement('div');
+                dayCell.textContent = i;
+                dayCell.classList.add('day', 'py-2', 'rounded-full');
+                if (i === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+                    dayCell.classList.add('today');
+                }
+                miniCalGridDays.appendChild(dayCell);
+            }
+        };
+        
+        const renderCourseList = () => {
+            courseListEl.innerHTML = '';
+            if (activeSubjectPool.length === 0) {
+                courseListEl.innerHTML = `<div class="empty-state-container"><p class="text-sm text-subtle text-center">No subjects in your pool. Add some from the menu.</p></div>`;
+                return;
+            }
+
+            activeSubjectPool.forEach(subjectName => {
+                const data = courseData[subjectName];
+                const progress = data.total > 0 ? (data.completed / data.total) * 100 : 0;
+
+                const item = document.createElement('div');
+                item.classList.add('flex', 'items-center', 'p-3', 'rounded-lg', 'bg-tertiary');
+                const iconColor = getSubjectColor(subjectName);
+
+                const progressCircleContainer = document.createElement('div');
+                const textContent = `${Math.round(progress)}%`;
+                const circle = createProgressCircle(progress, 18, 4, textContent);
+                progressCircleContainer.appendChild(circle);
+
+                item.innerHTML = `
+                    <div class="w-12 h-12 rounded-lg flex items-center justify-center mr-4 flex-shrink-0" style="background-color: ${iconColor}33;">
+                        <span style="color: ${iconColor}; font-weight: bold; font-size: 1.2rem;">${subjectName.substring(0,1).toUpperCase()}</span>
+                    </div>
+                    <div class="flex-grow">
+                        <p class="font-bold text-main">${subjectName}</p>
+                        <div class="text-sm text-subtle font-semibold" data-subject="${subjectName}">
+                            Lectures: <span class="lecture-count editable-lectures" contenteditable="true">${data.completed}/${data.total}</span>
+                        </div>
+                    </div>
+                `;
+                item.appendChild(progressCircleContainer);
+                courseListEl.appendChild(item);
+            });
+             // Add event listeners after creation
+            document.querySelectorAll('.editable-lectures').forEach(el => {
+                el.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        el.blur();
+                    }
+                });
+                el.addEventListener('blur', (e) => {
+                    const subject = e.target.parentElement.dataset.subject;
+                    const [completed, total] = e.target.textContent.split('/').map(s => parseInt(s.trim(), 10));
+                    if (!isNaN(completed) && !isNaN(total)) {
+                        courseData[subject] = { completed, total };
+                        saveCourseData();
+                        renderCourseList(); // Re-render to update progress
+                    }
+                });
+            });
+        };
+
+        const renderAssignments = () => {
+            assignmentListEl.innerHTML = '';
+            if(assignments.length === 0) {
+                assignmentListEl.innerHTML = `<div class="empty-state-container"><p class="text-sm text-subtle text-center">No assignments yet. Click '+' to add one.</p></div>`;
+                return;
+            }
+            assignments.sort((a, b) => new Date(a.due) - new Date(b.due)); // Sort assignments by due date
+            assignments.forEach(assignment => {
+                const item = document.createElement('div');
+                item.classList.add('flex', 'items-center', 'p-2', 'rounded-lg', 'hover:bg-tertiary', 'assignment-item');
+                const iconColor = getSubjectColor(assignment.title);
+                
+                const dueDate = new Date(assignment.due);
+                const formattedDate = dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                const formattedTime = dueDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+                item.innerHTML = `
+                    <div class="w-10 h-10 rounded-lg flex items-center justify-center mr-3 flex-shrink-0" style="background-color: ${iconColor}33;">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" style="color:${iconColor}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+                    </div>
+                    <div class="flex-grow">
+                        <p class="font-semibold text-main">${assignment.title}</p>
+                        <p class="text-xs text-subtle">${formattedDate}, ${formattedTime}</p>
+                    </div>
+                    <div class="status-btn status-${assignment.status.replace(' ', '-').toLowerCase()} mr-2" data-id="${assignment.id}">
+                        ${assignment.status}
+                    </div>
+                    <button class="delete-assignment-btn p-1.5 rounded-full hover:bg-red-500/20" data-id="${assignment.id}" title="Delete Assignment">
+                        <svg class="w-5 h-5 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.134-2.09-2.134H8.09a2.09 2.09 0 00-2.09 2.134v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+                    </button>
+                `;
+                assignmentListEl.appendChild(item);
+            });
+
+             // Add event listeners
+            document.querySelectorAll('.status-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = e.target.dataset.id;
+                    const assignment = assignments.find(a => a.id == id);
+                    if (assignment) {
+                        const statuses = ['Upcoming', 'In Progress', 'Completed'];
+                        const currentIndex = statuses.indexOf(assignment.status);
+                        const nextIndex = (currentIndex + 1) % statuses.length;
+                        assignment.status = statuses[nextIndex];
+                        saveAssignments();
+                        renderAssignments();
+                    }
+                });
+            });
+
+            document.querySelectorAll('.delete-assignment-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const id = e.currentTarget.dataset.id;
+                    if (confirm('Are you sure you want to delete this assignment?')) {
+                        assignments = assignments.filter(a => a.id != id);
+                        saveAssignments();
+                        renderAssignments();
+                    }
+                });
+            });
+        };
+
+        const openAssignmentModal = (id = null) => {
+            editingAssignmentId = id;
+            if (id) {
+                const assignment = assignments.find(a => a.id === id);
+                assignmentModalTitle.textContent = 'Edit Assignment';
+                assignmentTitleInput.value = assignment.title;
+                assignmentDueDateInput.value = assignment.due;
+            } else {
+                assignmentModalTitle.textContent = 'Add Assignment';
+                assignmentTitleInput.value = '';
+                assignmentDueDateInput.value = '';
+            }
+            assignmentModal.classList.remove('hidden');
+        };
+        const closeAssignmentModal = () => assignmentModal.classList.add('hidden');
+
+        addAssignmentBtn.addEventListener('click', () => openAssignmentModal());
+        cancelAssignmentBtn.addEventListener('click', closeAssignmentModal);
+        
+        const handleConfirmAssignment = () => {
+             const title = assignmentTitleInput.value.trim();
+            const due = assignmentDueDateInput.value;
+            if (!title || !due) return;
+
+            if (editingAssignmentId) {
+                const assignment = assignments.find(a => a.id === editingAssignmentId);
+                assignment.title = title;
+                assignment.due = due;
+            } else {
+                assignments.push({
+                    id: Date.now(),
+                    title,
+                    due,
+                    status: 'Upcoming'
+                });
+            }
+            saveAssignments();
+            renderAssignments();
+            closeAssignmentModal();
+        };
+
+        confirmAssignmentBtn.addEventListener('click', handleConfirmAssignment);
+        assignmentTitleInput.addEventListener('keydown', e => e.key === 'Enter' && assignmentDueDateInput.focus());
+        assignmentDueDateInput.addEventListener('keydown', e => e.key === 'Enter' && handleConfirmAssignment());
+        
+        const syncCourseData = () => {
+            activeSubjectPool.forEach(subjectName => {
+                if (!courseData[subjectName]) {
+                    courseData[subjectName] = { completed: 0, total: 10 };
+                }
+            });
+            Object.keys(courseData).forEach(subjectName => {
+                if (!activeSubjectPool.includes(subjectName)) {
+                    delete courseData[subjectName];
+                }
+            });
+            saveCourseData();
+        };
+
+        // --- DASHBOARD RENDER FUNCTIONS ---
+        const renderHeatmap = () => {
+            heatmapGrid.innerHTML = '';
+            const year = heatmapDate.getFullYear();
+            const month = heatmapDate.getMonth();
+            heatmapMonthYear.textContent = `${heatmapDate.toLocaleString('default', { month: 'long' })} ${year}`;
+
+            let allMinutes = Object.keys(studyData).map(key => calculateCompletedMinutesForDay(key)).filter(m => m > 0);
+            const maxMinutes = allMinutes.length > 0 ? Math.max(...allMinutes) : 1;
+
+            const firstDayOfMonth = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            for (let i = 0; i < firstDayOfMonth; i++) {
+                const ph = document.createElement('div');
+                heatmapGrid.appendChild(ph);
+            }
+
+            for (let i = 1; i <= daysInMonth; i++) {
+                const date = new Date(year, month, i);
+                const dateKey = formatDateKey(date);
+                const minutes = calculateCompletedMinutesForDay(dateKey);
+                
+                const cell = document.createElement('div');
+                cell.classList.add('heatmap-cell');
+
+                if (minutes > 0) {
+                    const intensity = minutes / maxMinutes;
+                    if (intensity > 0.83) cell.classList.add('heatmap-level-6');      // very dark
+                    else if (intensity > 0.66) cell.classList.add('heatmap-level-5'); // more dark
+                    else if (intensity > 0.50) cell.classList.add('heatmap-level-4'); // dark
+                    else if (intensity > 0.33) cell.classList.add('heatmap-level-3'); // light
+                    else if (intensity > 0.16) cell.classList.add('heatmap-level-2'); // little light
+                    else cell.classList.add('heatmap-level-1');                      // very light
+                }
+                
+                cell.innerHTML = `<div class="heatmap-tooltip">${date.toDateString()}<br>${formatMinutesToHoursAndMinutes(minutes)} studied</div>`;
+                heatmapGrid.appendChild(cell);
+            }
+        };
+
+        const calculateAllSubjectMinutesByPeriod = (period) => {
+            const stats = {};
+            // Initialize all active subjects with 0 minutes
+            activeSubjectPool.forEach(subject => {
+                stats[subject] = 0;
+            });
+
+            const dateKeys = getDateKeysForPeriod(period);
+            dateKeys.forEach(dateKey => {
+                (studyData[dateKey] || []).forEach(subject => {
+                    // Only calculate for subjects in the active pool
+                    if (stats.hasOwnProperty(subject.name)) {
+                        const minutes = calculateCompletedMinutesForDay(dateKey, subject.name);
+                        if (minutes > 0) {
+                            stats[subject.name] += minutes;
+                        }
+                    }
+                });
+            });
+            return stats;
+        };
+
+        const renderTopSubjects = (period) => {
+            rankerList.innerHTML = '';
+            document.querySelectorAll('#ranker-toggles .ranker-toggle-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.period === period);
+            });
+
+            const stats = calculateAllSubjectMinutesByPeriod(period);
+            const sortedSubjects = Object.entries(stats)
+                .filter(([, minutes]) => minutes > 0)
+                .sort(([, a], [, b]) => b - a);
+
+            if(sortedSubjects.length === 0) {
+                rankerList.innerHTML = `<div class="empty-state-container h-24"><p class="text-sm text-subtle text-center">No subjects studied in this period.</p></div>`;
+                return;
+            }
+
+            const maxMinutes = sortedSubjects.length > 0 ? sortedSubjects[0][1] : 0;
+
+            const top7 = sortedSubjects.slice(0, 7);
+            
+            top7.forEach(([name, minutes], index) => {
+                const item = document.createElement('div');
+                item.classList.add('ranker-item', 'grid', 'grid-cols-12', 'gap-4', 'items-center');
+                
+                const widthPercent = maxMinutes > 0 ? (minutes / maxMinutes) * 100 : 0;
+                
+                item.innerHTML = `
+                    <span class="text-lg font-bold text-subtle text-center">${index + 1}</span>
+                    <div class="col-span-11">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="font-semibold text-main">${name}</span>
+                            <span class="text-sm font-medium text-subtle">${formatMinutesToHoursAndMinutes(minutes)}</span>
+                        </div>
+                        <div class="progress-bar-bg w-full h-1.5">
+                            <div class="progress-bar" style="width: ${widthPercent}%;"></div>
+                        </div>
+                    </div>
+                `;
+                rankerList.appendChild(item);
+            });
+        };
+        
+        const renderLeastStudiedTable = (period) => {
+            leastStudiedList.innerHTML = '';
+            document.querySelectorAll('#least-studied-toggles .ranker-toggle-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.period === period);
+            });
+
+            const stats = calculateAllSubjectMinutesByPeriod(period);
+            const sortedSubjects = Object.entries(stats).sort(([, a], [, b]) => b - a);
+
+            if (sortedSubjects.length === 0) {
+                 leastStudiedList.innerHTML = `<tr><td colspan="3" class="text-center text-subtle py-4">No subjects to rank.</td></tr>`;
+                return;
+            }
+
+            const least = sortedSubjects.slice(7);
+
+            if (least.length > 0) {
+                least.forEach(([name, minutes], index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${index + 8}</td>
+                        <td class="font-medium text-main">${name}</td>
+                        <td class="text-subtle">${formatMinutesToHoursAndMinutes(minutes)}</td>
+                    `;
+                    leastStudiedList.appendChild(row);
+                });
+            } else {
+                 leastStudiedList.innerHTML = `<tr><td colspan="3" class="text-center text-subtle py-4">All subjects are in the top 7!</td></tr>`;
+            }
+        };
+
+        rankerToggles.addEventListener('click', (e) => {
+            if(e.target.matches('.ranker-toggle-btn')) {
+                const period = e.target.dataset.period;
+                renderTopSubjects(period);
+            }
+        });
+        
+        leastStudiedToggles.addEventListener('click', (e) => {
+            if(e.target.matches('.ranker-toggle-btn')) {
+                const period = e.target.dataset.period;
+                renderLeastStudiedTable(period);
+            }
+        });
+
+
+        const renderDashboard = () => {
+            dashboardDateEl.textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            updateMostLeastCards();
+            updateLearningTimeChart();
+            renderHoursActivity();
+            renderDailySchedule();
+            renderMiniCalendar();
+            renderCourseList();
+            renderAssignments();
+            renderHeatmap();
+            renderTopSubjects('week');
+            renderLeastStudiedTable('week');
+        };
+        
+        learningTimePeriodSelect.addEventListener('change', updateLearningTimeChart);
+        hoursActivityPeriodSelect.addEventListener('change', renderHoursActivity);
+        mostStudiedPeriodSelect.addEventListener('change', updateMostLeastCards);
+        leastStudiedPeriodSelect.addEventListener('change', updateMostLeastCards);
+        miniCalPrevBtn.addEventListener('click', () => { miniCalDate.setMonth(miniCalDate.getMonth() - 1); renderMiniCalendar(); });
+        miniCalNextBtn.addEventListener('click', () => { miniCalDate.setMonth(miniCalDate.getMonth() + 1); renderMiniCalendar(); });
+        heatmapPrevBtn.addEventListener('click', () => { heatmapDate.setMonth(heatmapDate.getMonth() - 1); renderHeatmap(); });
+        heatmapNextBtn.addEventListener('click', () => { heatmapDate.setMonth(heatmapDate.getMonth() + 1); renderHeatmap(); });
+
+        
+        // --- BACKUP/IMPORT LOGIC ---
+        const handleBackupData = () => {
+            closeSidebar();
+            try {
+                const dataToBackup = {
+                    studyData: localStorage.getItem('studyData') || '{}',
+                    subjectRatings: localStorage.getItem('subjectRatings') || '{}',
+                    courseData: localStorage.getItem('courseData') || '{}',
+                    assignments: localStorage.getItem('assignments') || '[]',
+                    masterSubjectsList: localStorage.getItem('masterSubjectsList') || '[]',
+                    activeSubjectPool: localStorage.getItem('activeSubjectPool') || '[]',
+                    dDayTarget: localStorage.getItem('dDayTarget'), // Can be null
+                    studyBaseTheme: localStorage.getItem('studyBaseTheme') || 'dark',
+                    studyAccentColor: localStorage.getItem('studyAccentColor') || 'green',
+                    doubtsDashboard: localStorage.getItem('doubtsDashboard') || '[]'
+                };
+
+                const jsonString = JSON.stringify(dataToBackup, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                const today = new Date();
+                const dateString = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+                a.href = url;
+                a.download = `study-planner-backup-${dateString}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+            } catch (error) {
+                console.error("Backup failed:", error);
+                alert("Could not create backup file. Please check the console for errors.");
+            }
+        };
+
+        const handleImportData = () => {
+            closeSidebar();
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json,application/json';
+            input.onchange = e => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = event => {
+                    try {
+                        const importedData = JSON.parse(event.target.result);
+                        
+                        if (confirm('Are you sure you want to import this data? This will overwrite all your current data.')) {
+                            // Basic validation
+                            const requiredKeys = ['studyData', 'masterSubjectsList', 'activeSubjectPool'];
+                            const hasRequiredKeys = requiredKeys.every(key => key in importedData);
+                            if (!hasRequiredKeys) {
+                                alert('Import failed: The backup file seems to be invalid or corrupted.');
+                                return;
+                            }
+
+                            // Clear existing data before import
+                            localStorage.clear();
+
+                            // Set each item from the imported file
+                            Object.keys(importedData).forEach(key => {
+                                if (importedData[key] !== null && importedData[key] !== undefined) {
+                                    localStorage.setItem(key, importedData[key]);
+                                }
+                            });
+
+                            alert('Data imported successfully! The application will now reload.');
+                            location.reload();
+                        }
+                    } catch (error) {
+                        console.error("Import failed:", error);
+                        alert("Could not import data. The file may be corrupted or not a valid backup file.");
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        };
+
+        /***************************************/
+        /* --- DOUBT DASHBOARD LOGIC START --- */
+        /***************************************/
+        const initDoubtDashboard = () => {
+             // --- SELECTORS ---
+            const doubtDashboardMain = document.getElementById('doubt-dashboard-main');
+            const editorView = document.getElementById('doubt-editor-view');
+            const doubtGrid = document.getElementById('doubt-grid');
+            const emptyState = document.getElementById('doubt-empty-state');
+            const addDoubtBtn = document.getElementById('add-doubt-btn');
+            const doubtModal = document.getElementById('doubt-modal');
+            const doubtTitleInput = document.getElementById('doubt-title-input');
+            const doubtSubjectSelect = document.getElementById('doubt-subject-select');
+            const cancelDoubtModalBtn = document.getElementById('cancel-doubt-modal');
+            const confirmDoubtModalBtn = document.getElementById('confirm-doubt-modal');
+            const backToDashboardBtn = document.getElementById('back-to-doubt-dashboard-btn');
+            const saveDoubtBtn = document.getElementById('save-doubt-btn');
+            const doubtTitleEditor = document.getElementById('doubt-title-editor');
+            const editorContent = document.getElementById('editor-content');
+            const searchInput = document.getElementById('search-doubts');
+            const filterSelect = document.getElementById('filter-subject');
+            
+            // Editor Toolbar
+            const addLinkBtn = document.getElementById('add-link-btn');
+            const addTodoBtn = document.getElementById('add-todo-btn');
+
+            // Voice Recording
+            const recordBtn = document.getElementById('record-btn');
+            const recordingStatus = document.getElementById('recording-status');
+            const recordingTimer = document.getElementById('recording-timer');
+            const audioPlayback = document.getElementById('audio-playback');
+
+            let doubts = JSON.parse(localStorage.getItem('doubtsDashboard')) || [];
+            let currentEditingDoubtId = null;
+            let mediaRecorder;
+            let audioChunks = [];
+            let recordingInterval;
+
+             // --- DATA HELPERS ---
+            const saveDoubts = () => localStorage.setItem('doubtsDashboard', JSON.stringify(doubts));
+
+            // --- VIEW MANAGEMENT ---
+            const showDoubtList = () => {
+                editorView.classList.add('hidden');
+                doubtDashboardMain.classList.remove('hidden');
+                renderDoubtDashboard();
+            };
+
+            const showDoubtEditor = () => {
+                doubtDashboardMain.classList.add('hidden');
+                editorView.classList.remove('hidden');
+            };
+
+             // --- DASHBOARD RENDERING ---
+            const renderDoubtDashboard = () => {
+                doubtGrid.innerHTML = '';
+                const searchTerm = searchInput.value.toLowerCase();
+                const selectedSubject = filterSelect.value;
+
+                const filteredDoubts = doubts.filter(doubt => {
+                    const titleMatch = doubt.title.toLowerCase().includes(searchTerm);
+                    const subjectMatch = selectedSubject === 'all' || doubt.subject === selectedSubject;
+                    return titleMatch && subjectMatch;
+                }).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+
+                if (filteredDoubts.length === 0) {
+                    emptyState.classList.remove('hidden');
+                } else {
+                    emptyState.classList.add('hidden');
+                    filteredDoubts.forEach(doubt => {
+                        const card = document.createElement('div');
+                        card.className = 'doubt-card rounded-xl p-4 flex flex-col cursor-pointer relative';
+                        card.dataset.id = doubt.id;
+
+                        const subjectColor = getSubjectColor(doubt.subject);
+
+                        card.innerHTML = `
+                            <div class="card-content flex flex-col h-full">
+                                <div class="flex-grow pr-6">
+                                    <span class="subject-tag text-xs font-semibold px-2 py-1 rounded-full" style="background-color: ${subjectColor}26; color: ${subjectColor};">${doubt.subject}</span>
+                                    <h3 class="text-lg font-bold text-main mt-2 break-words">${doubt.title}</h3>
+                                </div>
+                                <div class="text-xs text-subtle mt-4">${new Date(doubt.createdAt).toLocaleDateString()}</div>
+                            </div>
+
+                            <div class="confirm-delete-overlay">
+                            <p class="font-bold text-main text-center">Delete this doubt?</p>
+                            <div class="flex gap-2 mt-2">
+                                <button class="confirm-delete-yes px-4 py-1 text-sm rounded-md font-semibold btn-danger">Delete</button>
+                                <button class="confirm-delete-no px-4 py-1 text-sm rounded-md font-semibold btn-secondary">Cancel</button>
+                            </div>
+                            </div>
+
+                            <button class="delete-doubt-btn absolute top-2 right-2 p-1.5 rounded-full hover:bg-red-500/10 transition-colors z-20" title="Delete Doubt">
+                                <svg class="w-5 h-5 text-subtle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                        `;
+                        
+                        card.addEventListener('click', () => {
+                            if (!card.classList.contains('confirming')) {
+                                openDoubtEditor(doubt.id);
+                            }
+                        });
+
+                        doubtGrid.appendChild(card);
+
+                        const deleteBtn = card.querySelector('.delete-doubt-btn');
+                        const confirmYesBtn = card.querySelector('.confirm-delete-yes');
+                        const confirmNoBtn = card.querySelector('.confirm-delete-no');
+
+                        deleteBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            card.classList.add('confirming');
+                        });
+
+                        confirmNoBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            card.classList.remove('confirming');
+                        });
+
+                        confirmYesBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const doubtId = parseInt(card.dataset.id, 10);
+                            doubts = doubts.filter(d => d.id !== doubtId);
+                            saveDoubts();
+                            renderDoubtDashboard();
+                        });
+
+                    });
+                }
+            };
+
+            const populateFilterDropdown = () => {
+                filterSelect.innerHTML = '<option value="all">All Subjects</option>';
+                masterSubjectsList.forEach(subject => {
+                    const option = document.createElement('option');
+                    option.value = subject;
+                    option.textContent = subject;
+                    filterSelect.appendChild(option);
+                });
+            };
+            
+            // --- MODAL HANDLING ---
+            const openDoubtModal = () => {
+                doubtSubjectSelect.innerHTML = '';
+                masterSubjectsList.forEach(subject => {
+                    const option = document.createElement('option');
+                    option.value = subject;
+                    option.textContent = subject;
+                    doubtSubjectSelect.appendChild(option);
+                });
+                doubtTitleInput.value = '';
+                doubtModal.classList.remove('hidden');
+                doubtTitleInput.focus();
+            };
+
+            const closeDoubtModal = () => doubtModal.classList.add('hidden');
+
+            const handleConfirmDoubt = () => {
+                const title = doubtTitleInput.value.trim();
+                const subject = doubtSubjectSelect.value;
+                if (!title) {
+                    alert('Please enter a title for your doubt.');
+                    return;
+                }
+                const newDoubt = {
+                    id: Date.now(),
+                    title,
+                    subject,
+                    content: '',
+                    createdAt: new Date().toISOString()
+                };
+                doubts.push(newDoubt);
+                saveDoubts();
+                closeDoubtModal();
+                openDoubtEditor(newDoubt.id);
+            };
+            
+            // --- EDITOR LOGIC ---
+            const openDoubtEditor = (id) => {
+                currentEditingDoubtId = id;
+                const doubt = doubts.find(d => d.id === id);
+                if (!doubt) return;
+
+                doubtTitleEditor.value = doubt.title;
+                editorContent.innerHTML = doubt.content || '';
+                
+                audioPlayback.innerHTML = '';
+
+                showDoubtEditor();
+            };
+
+            const saveCurrentDoubt = () => {
+                if (currentEditingDoubtId === null) return;
+                const doubtIndex = doubts.findIndex(d => d.id === currentEditingDoubtId);
+                if (doubtIndex === -1) return;
+
+                doubts[doubtIndex].title = doubtTitleEditor.value.trim();
+                doubts[doubtIndex].content = editorContent.innerHTML;
+                
+                saveDoubts();
+                alert('Doubt saved!');
+            };
+            
+            // Rich Text Toolbar
+            editorView.querySelectorAll('.editor-tool-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const command = btn.dataset.command;
+                    if(command) {
+                        document.execCommand(command, false, null);
+                        editorContent.focus();
+                    }
+                });
+            });
+            
+            addLinkBtn.addEventListener('click', () => {
+                const url = prompt("Enter the URL:");
+                if (url) document.execCommand('createLink', false, url);
+            });
+
+            addTodoBtn.addEventListener('click', () => {
+                const id = `todo-${Date.now()}`;
+                document.execCommand('insertHTML', false, `
+                    <div class="todo-item" id="${id}">
+                        <input type="checkbox" onchange="document.getElementById('${id}').classList.toggle('completed')">
+                        <label contenteditable="true">&nbsp;</label>
+                    </div><div>&nbsp;</div>`);
+            });
+            
+            // Enhanced Checkbox Logic
+            editorContent.addEventListener('keydown', (e) => {
+                const selection = window.getSelection();
+                if (!selection.rangeCount) return;
+
+                const node = selection.anchorNode;
+                const parentElement = node.nodeType === 3 ? node.parentElement : node;
+                const todoLabel = parentElement.closest('.todo-item label');
+
+                if (todoLabel) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const currentTodoItem = todoLabel.closest('.todo-item');
+                        const newTodoId = `todo-${Date.now()}`;
+                        const newTodoHTML = `
+                            <div class="todo-item" id="${newTodoId}">
+                                <input type="checkbox" onchange="document.getElementById('${newTodoId}').classList.toggle('completed')">
+                                <label contenteditable="true"></label>
+                            </div>`;
+                        currentTodoItem.insertAdjacentHTML('afterend', newTodoHTML);
+                        
+                        const newLabel = document.getElementById(newTodoId).querySelector('label');
+                        const range = document.createRange();
+                        const sel = window.getSelection();
+                        range.setStart(newLabel, 0);
+                        range.collapse(true);
+                        sel.removeAllRanges();
+                        sel.addRange(range);
+                    } else if (e.key === 'Backspace' && todoLabel.textContent.length === 0) {
+                        e.preventDefault();
+                        const todoItem = todoLabel.closest('.todo-item');
+                        const prevSibling = todoItem.previousElementSibling;
+                        todoItem.remove();
+                        if (prevSibling) {
+                            const prevLabel = prevSibling.querySelector('label');
+                            if (prevLabel) {
+                                const range = document.createRange();
+                                const sel = window.getSelection();
+                                range.selectNodeContents(prevLabel);
+                                range.collapse(false);
+                                sel.removeAllRanges();
+                                sel.addRange(range);
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Image pasting
+            editorContent.addEventListener('paste', (e) => {
+                const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+                for (const item of items) {
+                    if (item.type.indexOf('image') === 0) {
+                        e.preventDefault();
+                        const file = item.getAsFile();
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                        document.execCommand('insertImage', false, event.target.result);
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                }
+            });
+
+            // --- VOICE RECORDING LOGIC ---
+            const handleRecord = async () => {
+                if (mediaRecorder && mediaRecorder.state === 'recording') {
+                    mediaRecorder.stop();
+                } else {
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        mediaRecorder = new MediaRecorder(stream);
+                        mediaRecorder.start();
+                        audioChunks = [];
+                        recordBtn.classList.add('recording');
+                        recordingStatus.textContent = 'Recording...';
+                        
+                        let seconds = 0;
+                        recordingInterval = setInterval(() => {
+                            seconds++;
+                            const min = Math.floor(seconds / 60).toString().padStart(2, '0');
+                            const sec = (seconds % 60).toString().padStart(2, '0');
+                            recordingTimer.textContent = `${min}:${sec}`;
+                        }, 1000);
+                        
+                        mediaRecorder.addEventListener('dataavailable', e => audioChunks.push(e.data));
+                        mediaRecorder.addEventListener('stop', () => {
+                            clearInterval(recordingInterval);
+                            recordBtn.classList.remove('recording');
+                            recordingStatus.textContent = 'Recording finished';
+                            recordingTimer.textContent = '00:00';
+
+                            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                            const audioUrl = URL.createObjectURL(audioBlob);
+                            
+                            const audio = document.createElement('audio');
+                            audio.src = audioUrl;
+                            audio.controls = true;
+
+                            const downloadLink = document.createElement('a');
+                            downloadLink.href = audioUrl;
+                            downloadLink.download = `doubt-note-${currentEditingDoubtId}.webm`;
+                            downloadLink.innerHTML = `<svg class="w-6 h-6 text-subtle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>`;
+                            downloadLink.title = "Download voice note";
+                            downloadLink.className = "p-2 hover:bg-main rounded-full";
+                            
+                            audioPlayback.innerHTML = '';
+                            audioPlayback.appendChild(audio);
+                            audioPlayback.appendChild(downloadLink);
+
+                            stream.getTracks().forEach(track => track.stop());
+                        });
+                    } catch (err) {
+                        alert('Microphone access denied. Please allow microphone access in your browser settings.');
+                        console.error("Error accessing microphone:", err);
+                    }
+                }
+            };
+            
+            // --- EVENT LISTENERS ---
+            addDoubtBtn.addEventListener('click', openDoubtModal);
+            cancelDoubtModalBtn.addEventListener('click', closeDoubtModal);
+            confirmDoubtModalBtn.addEventListener('click', handleConfirmDoubt);
+            backToDashboardBtn.addEventListener('click', showDoubtList);
+            saveDoubtBtn.addEventListener('click', saveCurrentDoubt);
+            searchInput.addEventListener('input', renderDoubtDashboard);
+            filterSelect.addEventListener('change', renderDoubtDashboard);
+            recordBtn.addEventListener('click', handleRecord);
+
+            // --- INITIALIZATION ---
+            populateFilterDropdown();
+            renderDoubtDashboard();
+        };
+
+        /*************************************/
+        /* --- DOUBT DASHBOARD LOGIC END --- */
+        /*************************************/
+
+        // --- INITIAL LOAD ---
+        const init = () => {
+            const savedTheme = localStorage.getItem('studyBaseTheme') || 'dark';
+            const savedAccent = localStorage.getItem('studyAccentColor') || 'green';
+            applyBaseTheme(savedTheme);
+            applyAccentColor(savedAccent);
+            populateThemeModal();
+            loadSubjectLists();
+            syncCourseData();
+            loadTargetDate();
+            updateDDayCounter();
+            renderCalendar();
+            renderSubjects();
+            initDoubtDashboard();
+            backupMenuBtn.addEventListener('click', handleBackupData);
+            importMenuBtn.addEventListener('click', handleImportData);
+        };
+
+        init();
+    });
+    </script>
+</body>
+</html>
+
