@@ -410,17 +410,17 @@
         <ul>
             <li>
                 <button id="calendar-menu-btn" class="w-full text-left py-2 px-3 rounded-md hover:bg-tertiary font-semibold transition-colors text-main">
-                   Study Calendar
+                    Study Calendar
                 </button>
             </li>
             <li>
                  <button id="dashboard-menu-btn" class="w-full text-left py-2 px-3 rounded-md hover:bg-tertiary font-semibold transition-colors text-main">
-                   Dashboard
+                    Dashboard
                 </button>
             </li>
             <li>
                  <button id="doubt-dashboard-menu-btn" class="w-full text-left py-2 px-3 rounded-md hover:bg-tertiary font-semibold transition-colors text-main">
-                   Doubt Manager
+                    Doubt Manager
                 </button>
             </li>
             <li>
@@ -475,6 +475,16 @@
                             Set Target
                         </button>
                     </div>
+                </div>
+
+                <!-- Session Timer -->
+                <div id="session-timer-container" class="text-center mb-6 p-4 rounded-lg list-item-bg border border-main">
+                    <div class="flex items-center justify-center gap-4">
+                        <h3 id="session-countdown-title" class="text-lg font-semibold text-subtle">Session Countdown</h3>
+                        <button id="set-end-time-btn" class="px-3 py-1 btn-secondary rounded-lg transition-colors text-sm font-semibold shadow-sm">Set End Time</button>
+                    </div>
+                    <div id="session-countdown" class="text-4xl font-bold my-2" style="color: var(--accent-primary); font-variant-numeric: tabular-nums;">--:--:--</div>
+                    <p id="session-motivation" class="text-md text-subtle font-medium">Set an end time to begin.</p>
                 </div>
                 
                 <div id="calendar-container">
@@ -619,30 +629,30 @@
                     </div>
                     <div class="space-y-6">
                         <!-- Subject Ranker Card -->
-                     <div class="dashboard-card">
-                         <div class="flex justify-between items-center mb-4">
-                             <h2 class="text-lg font-bold text-main">Subject Rankings</h2>
-                             <div id="ranker-toggles" class="flex space-x-1 bg-main p-1 rounded-lg">
-                                 <button data-period="week" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">This Week</button>
-                                 <button data-period="month" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">This Month</button>
-                                 <button data-period="all" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">All Time</button>
-                             </div>
-                         </div>
-                         <h3 class="font-semibold text-main mb-2">Top 7 Subjects</h3>
-                         <div id="ranker-list" class="space-y-4"></div>
-                     </div>
-                     <!-- Least Studied -->
-                      <div class="dashboard-card">
-                         <div class="flex justify-between items-center mb-4">
-                            <h2 class="text-lg font-bold text-main">Least Studied Subjects</h2>
-                            <div id="least-studied-toggles" class="flex space-x-1 bg-main p-1 rounded-lg">
-                                <button data-period="week" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">This Week</button>
-                                <button data-period="month" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">This Month</button>
+                       <div class="dashboard-card">
+                           <div class="flex justify-between items-center mb-4">
+                               <h2 class="text-lg font-bold text-main">Subject Rankings</h2>
+                               <div id="ranker-toggles" class="flex space-x-1 bg-main p-1 rounded-lg">
+                                   <button data-period="week" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">This Week</button>
+                                   <button data-period="month" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">This Month</button>
+                                   <button data-period="all" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">All Time</button>
+                               </div>
+                           </div>
+                           <h3 class="font-semibold text-main mb-2">Top 7 Subjects</h3>
+                           <div id="ranker-list" class="space-y-4"></div>
+                       </div>
+                       <!-- Least Studied -->
+                        <div class="dashboard-card">
+                            <div class="flex justify-between items-center mb-4">
+                               <h2 class="text-lg font-bold text-main">Least Studied Subjects</h2>
+                               <div id="least-studied-toggles" class="flex space-x-1 bg-main p-1 rounded-lg">
+                                   <button data-period="week" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">This Week</button>
+                                   <button data-period="month" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">This Month</button>
+                               </div>
                             </div>
-                         </div>
-                         <div id="least-studied-container" class="overflow-y-auto">
-                             <table class="least-studied-table">
-                                 <thead>
+                            <div id="least-studied-container" class="overflow-y-auto">
+                                <table class="least-studied-table">
+                                    <thead>
                                         <tr>
                                             <th>Rank</th>
                                             <th>Subject</th>
@@ -689,8 +699,8 @@
                         <!-- Course items will be generated here -->
                     </div>
                 </div>
-                  <!-- Assignments Card -->
-                  <div class="dashboard-card">
+                 <!-- Assignments Card -->
+                 <div class="dashboard-card">
                        <div class="flex justify-between items-center mb-4">
                            <h2 class="text-lg font-bold text-main">Assignments</h2>
                            <button id="add-assignment-btn" class="w-8 h-8 rounded-lg btn-primary flex items-center justify-center">
@@ -698,8 +708,8 @@
                            </button>
                        </div>
                        <div id="assignment-list" class="space-y-3 flex-grow"></div>
-                  </div>
-                  <!-- Mini Calendar Card -->
+                 </div>
+                 <!-- Mini Calendar Card -->
                 <div class="dashboard-card">
                     <div class="flex justify-between items-center mb-3">
                         <button id="mini-cal-prev" class="p-1 rounded-full hover:bg-tertiary transition-colors">
@@ -879,6 +889,19 @@
     <div id="edit-hours-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4"><div class="bg-main rounded-2xl shadow-xl p-6 w-full max-w-xs"><h4 class="text-xl font-bold mb-2 text-main">Set Hours for</h4><p id="edit-hours-subject-name" class="text-md mb-4 text-subtle"></p><input type="number" id="hours-input" min="1" class="w-full p-2 border rounded-lg mb-4 text-center text-lg input-main"><div class="flex justify-end space-x-3"><button id="cancel-edit-hours" class="px-5 py-2 btn-secondary rounded-lg transition-colors font-semibold">Cancel</button><button id="confirm-edit-hours" class="px-5 py-2 btn-primary rounded-lg transition-colors font-semibold">Save</button></div></div></div>
     <div id="randomize-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4"><div class="bg-main rounded-2xl shadow-xl p-6 w-full max-w-md"><h4 class="text-xl font-bold mb-5 text-main">How many subjects today?</h4><div id="subject-count-options" class="grid grid-cols-4 sm:grid-cols-5 gap-3 mb-6"></div><div class="flex justify-end space-x-3"><button id="cancel-randomize" class="px-5 py-2 btn-secondary rounded-lg transition-colors font-semibold">Cancel</button><button id="confirm-randomize" class="px-5 py-2 btn-primary rounded-lg transition-colors font-semibold">Generate</button></div></div></div>
 
+    <!-- Session End Time Modal -->
+    <div id="session-end-time-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-main rounded-2xl shadow-xl p-6 w-full max-w-xs">
+            <h4 class="text-xl font-bold mb-4 text-main">Session End Time</h4>
+            <p class="text-sm text-subtle mb-4">What time does your study session end for the day?</p>
+            <input type="time" id="session-end-time-input" class="w-full p-2 border rounded-lg mb-4 text-center text-lg input-main" style="color-scheme: dark;">
+            <div class="flex justify-end space-x-3">
+                <button id="cancel-end-time" class="px-5 py-2 btn-secondary rounded-lg transition-colors font-semibold">Cancel</button>
+                <button id="confirm-end-time" class="px-5 py-2 btn-primary rounded-lg transition-colors font-semibold">Save</button>
+            </div>
+        </div>
+    </div>
+
     <script>
     document.addEventListener('DOMContentLoaded', () => {
         let masterSubjectsList = [];
@@ -932,6 +955,16 @@
         const confirmEditHoursBtn = document.getElementById('confirm-edit-hours');
         const hoursInput = document.getElementById('hours-input');
         const editHoursSubjectName = document.getElementById('edit-hours-subject-name');
+        
+        // --- NEW TIMER SELECTORS ---
+        const setEndTimeBtn = document.getElementById('set-end-time-btn');
+        const sessionEndTimeModal = document.getElementById('session-end-time-modal');
+        const cancelEndTimeBtn = document.getElementById('cancel-end-time');
+        const confirmEndTimeBtn = document.getElementById('confirm-end-time');
+        const sessionEndTimeInput = document.getElementById('session-end-time-input');
+        const sessionCountdownEl = document.getElementById('session-countdown');
+        const sessionMotivationEl = document.getElementById('session-motivation');
+        const sessionCountdownTitle = document.getElementById('session-countdown-title');
         
         // --- NAVIGATION SELECTORS ---
         const calendarMenuBtn = document.getElementById('calendar-menu-btn');
@@ -998,6 +1031,10 @@
         let hoursActivityChart = null;
         let miniCalDate = new Date();
         let heatmapDate = new Date(); 
+        
+        // --- TIMER STATE ---
+        let studySessionEndTime = null; // Will hold 'HH:MM' string
+        let countdownInterval = null;
 
         
         // --- DATA HELPERS ---
@@ -1007,6 +1044,7 @@
         const saveSubjectRatings = () => localStorage.setItem('subjectRatings', JSON.stringify(subjectRatings));
         const saveCourseData = () => localStorage.setItem('courseData', JSON.stringify(courseData));
         const saveAssignments = () => localStorage.setItem('assignments', JSON.stringify(assignments));
+        const saveSessionEndTime = () => { if(studySessionEndTime) localStorage.setItem('studySessionEndTime', studySessionEndTime); else localStorage.removeItem('studySessionEndTime'); };
         
         const formatDateKey = (date) => {
             const year = date.getFullYear();
@@ -1089,6 +1127,85 @@
         dashboardMenuBtn.addEventListener('click', () => { closeSidebar(); showDashboardView(); });
         doubtDashboardMenuBtn.addEventListener('click', () => { closeSidebar(); showDoubtDashboardView(); });
         headerDoubtBtn.addEventListener('click', () => { showDoubtDashboardView(); });
+
+        // --- COUNTDOWN TIMER LOGIC ---
+        const updateMotivationMessage = (remainingHours) => {
+            if (!studySessionEndTime) {
+                sessionMotivationEl.textContent = 'Set an end time to track your progress.';
+                return;
+            }
+
+            const now = new Date();
+            const end = new Date();
+            const [endHours, endMinutes] = studySessionEndTime.split(':');
+            end.setHours(parseInt(endHours, 10), parseInt(endMinutes, 10), 0, 0);
+
+            const diffMs = end.getTime() - now.getTime();
+            if (diffMs < 0) {
+                sessionMotivationEl.textContent = "Great work! The session has ended.";
+                return;
+            }
+
+            const sessionHoursLeft = diffMs / (1000 * 60 * 60);
+
+            if (remainingHours > 0) {
+                let message = `You have <strong>${remainingHours.toFixed(1)} hours</strong> of tasks left.`;
+                message += ` Session ends in <strong>${formatMinutesToHoursAndMinutes(sessionHoursLeft * 60)}</strong>.`;
+                if (remainingHours > sessionHoursLeft) {
+                    message += ` <span style="color: var(--accent-danger);">Time to focus!</span>`;
+                } else {
+                     message += ` You're on track!`;
+                }
+                sessionMotivationEl.innerHTML = message;
+            } else {
+                sessionMotivationEl.textContent = "All tasks completed for today! 🎉";
+            }
+        };
+
+        const startOrUpdateCountdown = () => {
+            if (countdownInterval) clearInterval(countdownInterval);
+            if (!studySessionEndTime) {
+                sessionCountdownEl.textContent = '--:--:--';
+                sessionMotivationEl.textContent = 'Set an end time to begin.';
+                sessionCountdownTitle.textContent = 'Session Countdown';
+                return;
+            }
+            // Format the time for display, e.g., "11:30 PM"
+            const displayTime = new Date(`1970-01-01T${studySessionEndTime}`).toLocaleTimeString([], {hour: 'numeric', minute:'2-digit', hour12: true});
+            sessionCountdownTitle.textContent = `Session Ends at ${displayTime}`;
+
+            const updateTimer = () => {
+                const now = new Date();
+                const end = new Date(now);
+                const [endHours, endMinutes] = studySessionEndTime.split(':');
+                end.setHours(parseInt(endHours, 10), parseInt(endMinutes, 10), 0, 0);
+
+                const diffMs = end.getTime() - now.getTime();
+
+                if (diffMs <= 0) {
+                    sessionCountdownEl.textContent = '00:00:00';
+                    sessionMotivationEl.textContent = "Great work! The session has ended.";
+                    if (countdownInterval) clearInterval(countdownInterval);
+                    return;
+                }
+
+                const hours = Math.floor(diffMs / (1000 * 60 * 60)).toString().padStart(2, '0');
+                const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
+                const seconds = Math.floor((diffMs % (1000 * 60)) / 1000).toString().padStart(2, '0');
+
+                sessionCountdownEl.textContent = `${hours}:${minutes}:${seconds}`;
+
+                // Update motivation message as well
+                const dateKey = formatDateKey(selectedDate); // use selectedDate to match context
+                const totalMinutes = calculateTotalMinutesForDay(dateKey);
+                const completedMinutes = calculateCompletedMinutesForDay(dateKey);
+                const remainingHours = (totalMinutes - completedMinutes) / 60;
+                updateMotivationMessage(remainingHours);
+            };
+
+            updateTimer(); // Initial call to display immediately
+            countdownInterval = setInterval(updateTimer, 1000);
+        };
 
 
         // --- THEME LOGIC ---
@@ -1269,6 +1386,7 @@
                 completedSubjectsContainer.classList.add('hidden');
                 progressSummary.innerHTML = `<span>Total Hours Completed: 0 / 0</span>`;
                 progressSummary.appendChild(createProgressCircle(0, 14, 3, null));
+                updateMotivationMessage(0); // Update motivation message for empty state
                 return;
             }
 
@@ -1433,6 +1551,10 @@
             const completedMinutes = calculateCompletedMinutesForDay(dateKey);
             const totalHours = totalMinutes / 60;
             const completedHours = completedMinutes / 60;
+            
+            // Call motivation message update
+            const remainingHours = totalHours - completedHours;
+            updateMotivationMessage(remainingHours);
 
             const overallProgress = totalHours > 0 ? (completedHours / totalHours) * 100 : 0;
             const summaryText = document.createElement('span');
@@ -1664,6 +1786,22 @@
         cancelDDayBtn.addEventListener('click', closeDDayModal);
         dDayModal.addEventListener('click', (e) => { if (e.target === dDayModal) closeDDayModal(); });
         confirmDDayBtn.addEventListener('click', () => { if (dDayInput.value) { targetDate = dDayInput.value; saveTargetDate(); updateDDayCounter(); } closeDDayModal(); });
+
+        // --- Session End Time Modal Listeners ---
+        setEndTimeBtn.addEventListener('click', () => {
+            sessionEndTimeInput.value = studySessionEndTime || '';
+            sessionEndTimeModal.classList.remove('hidden');
+        });
+        cancelEndTimeBtn.addEventListener('click', () => sessionEndTimeModal.classList.add('hidden'));
+        sessionEndTimeModal.addEventListener('click', (e) => { if (e.target === sessionEndTimeModal) sessionEndTimeModal.classList.add('hidden'); });
+        confirmEndTimeBtn.addEventListener('click', () => {
+            if(sessionEndTimeInput.value) {
+                studySessionEndTime = sessionEndTimeInput.value;
+                saveSessionEndTime();
+                startOrUpdateCountdown();
+                sessionEndTimeModal.classList.add('hidden');
+            }
+        });
 
 
         // --- DASHBOARD LOGIC ---
@@ -1943,10 +2081,10 @@
                                 title: function(context) {
                                     const date = new Date(now);
                                     if (period === 'weekly') {
-                                         const dayOfWeek = now.getDay();
-                                         date.setDate(now.getDate() - dayOfWeek + context[0].dataIndex);
+                                        const dayOfWeek = now.getDay();
+                                        date.setDate(now.getDate() - dayOfWeek + context[0].dataIndex);
                                     } else {
-                                         date.setDate(context[0].dataIndex + 1);
+                                        date.setDate(context[0].dataIndex + 1);
                                     }
                                     return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
                                 },
@@ -2242,7 +2380,7 @@
                     else if (intensity > 0.50) cell.classList.add('heatmap-level-4'); // dark
                     else if (intensity > 0.33) cell.classList.add('heatmap-level-3'); // light
                     else if (intensity > 0.16) cell.classList.add('heatmap-level-2'); // little light
-                    else cell.classList.add('heatmap-level-1');                      // very light
+                    else cell.classList.add('heatmap-level-1');                       // very light
                 }
                 
                 cell.innerHTML = `<div class="heatmap-tooltip">${date.toDateString()}<br>${formatMinutesToHoursAndMinutes(minutes)} studied</div>`;
@@ -2398,7 +2536,8 @@
                     dDayTarget: localStorage.getItem('dDayTarget'), // Can be null
                     studyBaseTheme: localStorage.getItem('studyBaseTheme') || 'dark',
                     studyAccentColor: localStorage.getItem('studyAccentColor') || 'green',
-                    doubtsDashboard: localStorage.getItem('doubtsDashboard') || '[]'
+                    doubtsDashboard: localStorage.getItem('doubtsDashboard') || '[]',
+                    studySessionEndTime: localStorage.getItem('studySessionEndTime') // Added for backup
                 };
 
                 const jsonString = JSON.stringify(dataToBackup, null, 2);
@@ -2846,6 +2985,11 @@
             syncCourseData();
             loadTargetDate();
             updateDDayCounter();
+
+            // --- TIMER INIT ---
+            studySessionEndTime = localStorage.getItem('studySessionEndTime');
+            startOrUpdateCountdown();
+
             renderCalendar();
             renderSubjects();
             initDoubtDashboard();
@@ -2858,4 +3002,3 @@
     </script>
 </body>
 </html>
-
