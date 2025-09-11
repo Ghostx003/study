@@ -1149,7 +1149,8 @@
             const sessionHoursLeft = diffMs / (1000 * 60 * 60);
 
             if (remainingHours > 0) {
-                let message = `You have <strong>${remainingHours.toFixed(1)} hours</strong> of tasks left.`;
+                const remainingMinutes = remainingHours * 60;
+                let message = `You have <strong>${formatMinutesToHoursAndMinutes(remainingMinutes)}</strong> of tasks left.`;
                 message += ` Session ends in <strong>${formatMinutesToHoursAndMinutes(sessionHoursLeft * 60)}</strong>.`;
                 if (remainingHours > sessionHoursLeft) {
                     message += ` <span style="color: var(--accent-danger);">Time to focus!</span>`;
@@ -3002,3 +3003,4 @@
     </script>
 </body>
 </html>
+
