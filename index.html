@@ -7,6 +7,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <style>
         /* CSS Variables for Theming */
         :root { /* This is the Light theme by default */
@@ -299,86 +301,80 @@
         html[data-theme="dark"] .doubt-card:hover {
              box-shadow: 0 0 20px -5px var(--accent-primary_translucent, rgba(22, 163, 74, 0.4));
         }
-        .subject-tag {
-            background-color: var(--accent-primary_translucent, #16a34a26);
-            color: var(--accent-primary);
+        .status-badge {
+            font-size: 0.75rem; font-weight: 600; padding: 0.25rem 0.75rem; border-radius: 9999px;
         }
-        .editor-content {
-            min-height: 300px;
-            outline: none;
-            line-height: 1.6;
+        .status-unsolved { background-color: #f59e0b26; color: #f59e0b; }
+        .status-solved { background-color: #22c55e26; color: #22c55e; }
+        .status-doubt { background-color: #6366f126; color: #6366f1; }
+        .status-error { background-color: #ef444426; color: #ef4444; }
+        .solved-separator {
+            grid-column: 1 / -1; display: flex; align-items: center;
+            gap: 0.75rem; margin: 1rem 0 0.5rem 0;
         }
-        .editor-content img {
-            max-width: 100%;
-            height: auto;
-            border-radius: 0.5rem;
-            margin-top: 1rem;
-            margin-bottom: 1rem;
+        .solved-separator::after {
+            content: ''; flex-grow: 1; height: 1px; background-color: var(--border-primary);
         }
-        .editor-content .todo-item {
-            display: flex;
-            align-items: center;
-            margin: 0.5rem 0;
+        .solved-title {
+            color: #22c55e; font-weight: 600; font-size: 0.9rem; white-space: nowrap;
         }
-        .editor-content .todo-item input[type="checkbox"] {
-            width: 1.1rem;
-            height: 1.1rem;
-            margin-right: 0.75rem;
-            flex-shrink: 0;
-            accent-color: var(--accent-primary);
+
+        .doubt-editor-container {
+            border: 1px solid var(--border-primary); border-radius: 0.5rem; background-color: var(--bg-secondary);
         }
-         .editor-content .todo-item label {
-            flex-grow: 1;
-            outline: none;
+        .doubt-editor-toolbar {
+            display: flex; align-items: center; padding: 0.5rem; border-bottom: 1px solid var(--border-primary);
+            background-color: var(--bg-tertiary); border-top-left-radius: 0.5rem; border-top-right-radius: 0.5rem;
+            flex-wrap: wrap; gap: 0.5rem;
         }
-        .editor-content .todo-item.completed label {
-            text-decoration: line-through;
-            color: var(--text-secondary);
+        .doubt-editor-content {
+            min-height: 150px; outline: none; line-height: 1.6; padding: 1rem;
         }
-        .editor-tool-btn {
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.25rem;
-            font-weight: bold;
-            font-size: 1rem;
-            width: 2rem;
-            height: 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background-color 0.2s;
+        .doubt-editor-content a {
+            color: var(--accent-primary); text-decoration: underline; cursor: pointer;
         }
-        .editor-tool-btn:hover {
-            background-color: var(--border-primary);
+        .doubt-editor-content img {
+            max-width: 100%; height: auto; border-radius: 0.5rem; margin: 1rem 0;
         }
-        #record-btn.recording {
-            background-color: var(--accent-danger);
+        .doubt-editor-tool-btn {
+            padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-weight: bold; font-size: 1rem;
+            width: 2rem; height: 2rem; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s;
         }
-        #record-btn.recording .mic-icon { display: none; }
-        #record-btn.recording .stop-icon { display: block; }
-        .stop-icon { display: none; }
-        #recording-timer { font-variant-numeric: tabular-nums; }
-        #audio-playback audio { height: 40px; width: 100%; }
-        .doubt-card.confirming .card-content {
-            opacity: 0.1;
-            filter: blur(4px);
+        .doubt-editor-tool-btn:hover { background-color: var(--border-primary); }
+        .custom-editor-block { position: relative; margin-bottom: 1.5rem; }
+        .delete-section-btn {
+            position: absolute; top: 0.5rem; right: 0.5rem; z-index: 10;
+            background-color: var(--bg-tertiary); border-radius: 9999px; padding: 0.25rem;
+            color: var(--text-secondary); cursor: pointer; transition: all 0.2s;
         }
+        .delete-section-btn:hover { color: var(--accent-danger); background-color: var(--border-primary); transform: scale(1.1); }
+        
+        .code-block-wrapper {
+            background-color: #282c34; border-radius: 0.5rem; margin: 1rem 0; overflow: hidden;
+        }
+        .code-block-header {
+            display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.75rem;
+            background-color: rgba(0,0,0,0.2); font-size: 0.8rem; color: var(--text-secondary);
+        }
+        .copy-code-btn {
+            background-color: var(--border-secondary); color: var(--text-primary); border: none; padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem; cursor: pointer; font-size: 0.75rem; transition: background-color 0.2s;
+        }
+        .copy-code-btn:hover { background-color: var(--border-primary); }
+        .code-block-wrapper pre { margin: 0; }
+        .code-block-wrapper code.hljs { padding: 1rem; border-radius: 0; background: transparent; }
+        
+        .modal-overlay { position: fixed; inset: 0; background-color: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 1rem; }
+        .modal-content { background-color: var(--bg-secondary); border-radius: 1rem; box-shadow: 0 10px 25px rgba(0,0,0,0.2); padding: 1.5rem; width: 100%; max-width: 28rem; }
+        .doubt-card.confirming .card-content { opacity: 0.1; filter: blur(4px); }
         .doubt-card .confirm-delete-overlay {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 1rem;
-            z-index: 30;
-            border-radius: 0.75rem;
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: none; flex-direction: column;
+            justify-content: center; align-items: center; gap: 0.75rem; padding: 1rem; z-index: 30; border-radius: 0.75rem;
         }
         .doubt-card.confirming .confirm-delete-overlay { display: flex; }
-        .btn-danger {
-            background-color: var(--accent-danger);
-            color: white;
-        }
+        .btn-danger { background-color: var(--accent-danger); color: white; }
+
+
         .least-studied-table {
             width: 100%;
             border-collapse: collapse;
@@ -792,23 +788,23 @@
                         <button class="hamburger-menu-btn p-2 rounded-full hover:bg-tertiary transition-colors">
                              <svg class="w-6 h-6 text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                         </button>
-                        <h1 class="text-3xl md:text-4xl font-bold text-main whitespace-nowrap">Doubt Manager</h1>
+                        <h1 class="text-3xl md:text-4xl font-bold text-main whitespace-nowrap">Doubt Dashboard</h1>
                     </div>
                     <div class="flex items-center w-full md:w-auto gap-2">
                         <input type="search" id="search-doubts" placeholder="Search doubts..." class="input-main w-full md:w-64 px-4 py-2 rounded-lg">
                         <select id="filter-subject" class="input-main px-4 py-2 rounded-lg appearance-none">
                             <option value="all">All Subjects</option>
                         </select>
+                        <button id="manage-doubt-subjects-btn" title="Manage Subjects" class="btn-secondary p-2 rounded-lg">
+                            <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.24-.438.613-.438.995s.145.755.438.995l1.003.827c.48.398.668 1.03.26 1.431l-1.296 2.247a1.125 1.125 0 0 1-1.37.49l-1.217-.456c-.355-.133-.75-.072-1.075.124a6.57 6.57 0 0 1-.22.127c-.332.183-.582.495-.645.87l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.063-.374-.313-.686-.645-.87a6.52 6.52 0 0 1-.22-.127c-.324-.196-.72-.257-1.075-.124l-1.217.456a1.125 1.125 0 0 1-1.37-.49l-1.296-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.437-.995s-.145-.755-.437-.995l-1.004-.827a1.125 1.125 0 0 1-.26-1.431l1.296-2.247a1.125 1.125 0 0 1 1.37-.49l1.217.456c.355.133.75.072 1.075-.124.072-.044.146-.087.22-.127.332-.183.582-.495.645-.87l.213-1.281Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
+                        </button>
                     </div>
                 </div>
 
-                <div id="doubt-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    </div>
+                <div id="doubt-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
                 
                 <div id="doubt-empty-state" class="text-center py-20 hidden">
-                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                        <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                    </svg>
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" /></svg>
                     <h3 class="mt-2 text-lg font-medium text-main">No Doubts Logged</h3>
                     <p class="mt-1 text-sm text-subtle">Get started by adding a new doubt.</p>
                 </div>
@@ -820,77 +816,34 @@
         </div>
 
         <div id="doubt-editor-view" class="hidden max-w-4xl mx-auto p-4 md:p-8">
-            <div class="flex justify-between items-center mb-6">
+            <div class="flex justify-between items-center mb-6 flex-wrap gap-2">
                 <button id="back-to-doubt-dashboard-btn" class="btn-secondary font-semibold py-2 px-4 rounded-lg flex items-center space-x-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
-                    <span>Back to Dashboard</span>
+                    <span>Back</span>
                 </button>
-                <button id="save-doubt-btn" class="btn-primary font-semibold py-2 px-4 rounded-lg flex items-center space-x-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l7-7a1 1 0 00-1.414-1.414L10 12.586l-2.293-2.293z" /></svg>
-                    <span>Save</span>
-                </button>
+                <div class="flex items-center gap-2">
+                     <button id="change-status-btn" class="btn-secondary font-semibold py-2 px-4 rounded-lg"></button>
+                     <button id="save-doubt-btn" class="btn-primary font-semibold py-2 px-4 rounded-lg flex items-center space-x-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l7-7a1 1 0 00-1.414-1.414L10 12.586l-2.293-2.293z" /></svg>
+                        <span>Save</span>
+                    </button>
+                </div>
             </div>
 
-            <div class="bg-main p-6 md:p-8 rounded-2xl shadow-lg border border-main space-y-6">
+            <div class="bg-main p-6 md:p-8 rounded-2xl shadow-lg border border-main space-y-8">
                 <input type="text" id="doubt-title-editor" placeholder="Doubt Title..." class="text-3xl font-bold bg-transparent w-full focus:outline-none border-b-2 border-main pb-2">
                 
-                <div>
-                    <h3 class="text-lg font-semibold mb-2 text-subtle">Explanation</h3>
-                    <div class="border border-main rounded-lg">
-                        <div class="flex items-center p-2 border-b border-main space-x-2 bg-tertiary rounded-t-lg flex-wrap">
-                        <button class="editor-tool-btn" data-command="bold" title="Bold"><b>B</b></button>
-                        <button class="editor-tool-btn" data-command="italic" title="Italic"><i>I</i></button>
-                        <button class="editor-tool-btn" data-command="insertUnorderedList" title="Bullet List">●</button>
-                        <button id="add-link-btn" class="editor-tool-btn" title="Add Link">🔗</button>
-                        <button id="add-todo-btn" class="editor-tool-btn" title="Add Checkbox">☑</button>
-                        </div>
-                        <div id="editor-content" contenteditable="true" class="p-4 editor-content"></div>
-                    </div>
-                    <p class="text-xs text-subtle mt-2">You can paste images directly into the editor.</p>
-                </div>
+                <div id="editors-wrapper"></div>
 
-                <div>
-                    <h3 class="text-lg font-semibold mb-2 text-subtle">Voice Note</h3>
-                    <div class="p-4 border border-main rounded-lg bg-tertiary space-y-3">
-                        <div class="flex items-center justify-between">
-                            <div id="recording-status" class="text-main font-medium">Add a voice note</div>
-                            <div id="recording-timer" class="text-sm font-mono text-subtle">00:00</div>
-                        </div>
-                        <div id="audio-controls" class="flex items-center gap-3">
-                            <button id="record-btn" title="Start/Stop Recording" class="flex items-center justify-center w-12 h-12 rounded-full btn-primary transition-colors duration-200 flex-shrink-0">
-                                <svg class="mic-icon w-6 h-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
-                                <div class="stop-icon w-5 h-5 bg-white rounded-sm"></div>
-                            </button>
-                            <div id="audio-playback" class="flex-grow min-w-0"></div>
-                        </div>
-                    </div>
-                    <p class="text-xs text-subtle mt-2">Voice notes are not saved automatically. You must click the download link that appears to save the file.</p>
-                </div>
+                <button id="add-editor-btn" title="Add another text box" class="w-full btn-secondary flex items-center justify-center p-2 rounded-lg border-2 border-dashed border-main hover:border-accent-primary transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                </button>
+                <input type="file" id="image-upload-input" accept="image/*" class="hidden">
             </div>
         </div>
         
-        <div id="doubt-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4">
-            <div class="bg-main rounded-2xl shadow-xl p-6 w-full max-w-md">
-                <h4 id="doubt-modal-title" class="text-xl font-bold mb-4 text-main">Add New Doubt</h4>
-                <div class="space-y-4">
-                    <div>
-                        <label for="doubt-title-input" class="block text-sm font-medium text-subtle mb-1">Doubt Title</label>
-                        <input type="text" id="doubt-title-input" class="w-full p-2 border rounded-lg input-main">
-                    </div>
-                    <div>
-                        <label for="doubt-subject-select" class="block text-sm font-medium text-subtle mb-1">Subject</label>
-                        <select id="doubt-subject-select" class="w-full p-2 border rounded-lg input-main"></select>
-                    </div>
-                </div>
-                <div class="flex justify-end space-x-3 mt-6">
-                    <button id="cancel-doubt-modal" class="px-5 py-2 btn-secondary rounded-lg transition-colors font-semibold">Cancel</button>
-                    <button id="confirm-doubt-modal" class="px-5 py-2 btn-primary rounded-lg transition-colors font-semibold">Create & Edit</button>
-                </div>
-            </div>
-        </div>
     </div>
-
-
+    
     <div id="assignment-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4">
         <div class="bg-main rounded-2xl shadow-xl p-6 w-full max-w-sm">
             <h4 id="assignment-modal-title" class="text-xl font-bold mb-4 text-main">Add Assignment</h4>
@@ -931,10 +884,38 @@
             </div>
         </div>
     </div>
+    <div id="manage-doubt-subjects-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h4 class="text-xl font-bold text-main">Manage Subjects</h4>
+                <button id="close-doubt-subjects-modal" class="p-1 rounded-full hover:bg-main">&times;</button>
+            </div>
+            <div id="doubt-subjects-list" class="space-y-2 max-h-96 overflow-y-auto"></div>
+        </div>
+    </div>
     
     <div id="edit-subjects-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4"><div class="bg-main rounded-2xl shadow-xl p-6 w-full max-w-md"><h4 class="text-xl font-bold mb-5 text-main">Edit Subjects for Today</h4><div id="subjects-checklist" class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6 max-h-64 overflow-y-auto p-1"></div><div class="flex justify-end space-x-3"><button id="cancel-edit-subjects" class="px-5 py-2 btn-secondary rounded-lg transition-colors font-semibold">Cancel</button><button id="confirm-edit-subjects" class="px-5 py-2 btn-primary rounded-lg transition-colors font-semibold">Save Changes</button></div></div></div>
     <div id="edit-hours-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4"><div class="bg-main rounded-2xl shadow-xl p-6 w-full max-w-xs"><h4 class="text-xl font-bold mb-2 text-main">Set Hours for</h4><p id="edit-hours-subject-name" class="text-md mb-4 text-subtle"></p><input type="number" id="hours-input" min="1" class="w-full p-2 border rounded-lg mb-4 text-center text-lg input-main"><div class="flex justify-end space-x-3"><button id="cancel-edit-hours" class="px-5 py-2 btn-secondary rounded-lg transition-colors font-semibold">Cancel</button><button id="confirm-edit-hours" class="px-5 py-2 btn-primary rounded-lg transition-colors font-semibold">Save</button></div></div></div>
     <div id="randomize-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4"><div class="bg-main rounded-2xl shadow-xl p-6 w-full max-w-md"><h4 class="text-xl font-bold mb-5 text-main">How many subjects today?</h4><div id="subject-count-options" class="grid grid-cols-4 sm:grid-cols-5 gap-3 mb-6"></div><div class="flex justify-end space-x-3"><button id="cancel-randomize" class="px-5 py-2 btn-secondary rounded-lg transition-colors font-semibold">Cancel</button><button id="confirm-randomize" class="px-5 py-2 btn-primary rounded-lg transition-colors font-semibold">Generate</button></div></div></div>
+    <div id="doubt-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-main rounded-2xl shadow-xl p-6 w-full max-w-md">
+            <h4 class="text-xl font-bold mb-4 text-main">Add New Doubt</h4>
+            <div class="space-y-4">
+                <div>
+                    <label for="doubt-title-input" class="block text-sm font-medium text-subtle mb-1">Doubt Title</label>
+                    <input type="text" id="doubt-title-input" class="w-full p-2 border rounded-lg input-main">
+                </div>
+                <div>
+                    <label for="doubt-subject-select" class="block text-sm font-medium text-subtle mb-1">Subject</label>
+                    <select id="doubt-subject-select" class="w-full p-2 border rounded-lg input-main"></select>
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button id="cancel-doubt-modal" class="px-5 py-2 btn-secondary rounded-lg transition-colors font-semibold">Cancel</button>
+                <button id="confirm-doubt-modal" class="px-5 py-2 btn-primary rounded-lg transition-colors font-semibold">Create & Edit</button>
+            </div>
+        </div>
+    </div>
 
     <div id="session-end-time-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4">
         <div class="bg-main rounded-2xl shadow-xl p-6 w-full max-w-xs">
@@ -1194,6 +1175,8 @@
             calendarView.classList.add('hidden');
             dashboardView.classList.add('hidden');
             doubtDashboardView.classList.remove('hidden');
+             // Initialize/Re-render doubt dashboard when showing it
+            initDoubtDashboard();
         };
         
         // --- NAVIGATION LISTENERS ---
@@ -2942,6 +2925,7 @@
                     studyBaseTheme: localStorage.getItem('studyBaseTheme') || 'dark',
                     studyAccentColor: localStorage.getItem('studyAccentColor') || 'green',
                     doubtsDashboard: localStorage.getItem('doubtsDashboard') || '[]',
+                    doubtsSubjects: localStorage.getItem('doubtsSubjects') || '[]',
                     studySessionEndTime: localStorage.getItem('studySessionEndTime'),
                     pinnedSubjects: localStorage.getItem('pinnedSubjects') || '[]',
                     facultyData: localStorage.getItem('facultyData') || '{}',
@@ -3028,12 +3012,20 @@
             }
         };
 
-
         /***************************************/
         /* --- DOUBT DASHBOARD LOGIC START --- */
         /***************************************/
-        const initDoubtDashboard = () => {
-             // --- SELECTORS ---
+         const initDoubtDashboard = () => {
+            // --- CONSTANTS & STATE ---
+            const DEFAULT_SUBJECTS = ['COA', 'CN', 'OS', 'DL', 'TOC', 'Maths', 'DM', 'Apti', 'Compiler', 'DBMS', 'C', 'DSA', 'Algo'];
+            const STATUSES = ['Unsolved', 'Solved', 'Doubt', 'Error'];
+            let doubts = JSON.parse(localStorage.getItem('doubtsDashboard')) || [];
+            let doubtSubjects = JSON.parse(localStorage.getItem('doubtsSubjects')) || [...DEFAULT_SUBJECTS];
+            let currentEditingDoubtId = null;
+            let currentEditorStatus = '';
+            let activeImageUploadTarget = null;
+            
+            // --- SELECTORS ---
             const doubtDashboardMain = document.getElementById('doubt-dashboard-main');
             const editorView = document.getElementById('doubt-editor-view');
             const doubtGrid = document.getElementById('doubt-grid');
@@ -3047,27 +3039,19 @@
             const backToDashboardBtn = document.getElementById('back-to-doubt-dashboard-btn');
             const saveDoubtBtn = document.getElementById('save-doubt-btn');
             const doubtTitleEditor = document.getElementById('doubt-title-editor');
-            const editorContent = document.getElementById('editor-content');
             const searchInput = document.getElementById('search-doubts');
             const filterSelect = document.getElementById('filter-subject');
+            const changeStatusBtn = document.getElementById('change-status-btn');
+            const editorsWrapper = document.getElementById('editors-wrapper');
+            const addEditorBtn = document.getElementById('add-editor-btn');
+            const imageUploadInput = document.getElementById('image-upload-input');
+            const manageSubjectsBtn = document.getElementById('manage-doubt-subjects-btn');
+            const manageSubjectsModal = document.getElementById('manage-doubt-subjects-modal');
+            const closeSubjectsModalBtn = document.getElementById('close-doubt-subjects-modal');
+            const subjectsList = document.getElementById('doubt-subjects-list');
             
-            // Editor Toolbar
-            const addLinkBtn = document.getElementById('add-link-btn');
-            const addTodoBtn = document.getElementById('add-todo-btn');
-
-            // Voice Recording
-            const recordBtn = document.getElementById('record-btn');
-            const recordingStatus = document.getElementById('recording-status');
-            const recordingTimer = document.getElementById('recording-timer');
-            const audioPlayback = document.getElementById('audio-playback');
-
-            let doubts = JSON.parse(localStorage.getItem('doubtsDashboard')) || [];
-            let currentEditingDoubtId = null;
-            let mediaRecorder;
-            let audioChunks = [];
-            let recordingInterval;
-
-             // --- DATA HELPERS ---
+            // --- DATA HELPERS ---
+            const saveDoubtSubjects = () => localStorage.setItem('doubtsSubjects', JSON.stringify(doubtSubjects));
             const saveDoubts = () => localStorage.setItem('doubtsDashboard', JSON.stringify(doubts));
 
             // --- VIEW MANAGEMENT ---
@@ -3076,7 +3060,6 @@
                 doubtDashboardMain.classList.remove('hidden');
                 renderDoubtDashboard();
             };
-
             const showDoubtEditor = () => {
                 doubtDashboardMain.classList.add('hidden');
                 editorView.classList.remove('hidden');
@@ -3087,297 +3070,142 @@
                 doubtGrid.innerHTML = '';
                 const searchTerm = searchInput.value.toLowerCase();
                 const selectedSubject = filterSelect.value;
-
-                const filteredDoubts = doubts.filter(doubt => {
-                    const titleMatch = doubt.title.toLowerCase().includes(searchTerm);
-                    const subjectMatch = selectedSubject === 'all' || doubt.subject === selectedSubject;
-                    return titleMatch && subjectMatch;
-                }).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
-
+                
+                const filteredDoubts = doubts.filter(d => 
+                    d.title.toLowerCase().includes(searchTerm) && (selectedSubject === 'all' || d.subject === selectedSubject)
+                ).sort((a, b) => {
+                    const aIsSolved = a.status === 'Solved'; const bIsSolved = b.status === 'Solved';
+                    if (aIsSolved !== bIsSolved) return aIsSolved ? 1 : -1;
+                    return new Date(b.createdAt) - new Date(a.createdAt);
+                });
 
                 if (filteredDoubts.length === 0) {
                     emptyState.classList.remove('hidden');
                 } else {
                     emptyState.classList.add('hidden');
+                    let solvedSeparatorAdded = false;
                     filteredDoubts.forEach(doubt => {
+                        if (doubt.status === 'Solved' && !solvedSeparatorAdded) {
+                            const separator = document.createElement('div');
+                            separator.className = 'solved-separator';
+                            separator.innerHTML = `<span class="solved-title">Solved ⭐</span>`;
+                            doubtGrid.appendChild(separator);
+                            solvedSeparatorAdded = true;
+                        }
                         const card = document.createElement('div');
                         card.className = 'doubt-card rounded-xl p-4 flex flex-col cursor-pointer relative';
                         card.dataset.id = doubt.id;
-
-                        const subjectColor = getSubjectColor(doubt.subject);
-
-                        card.innerHTML = `
-                            <div class="card-content flex flex-col h-full">
-                                <div class="flex-grow pr-6">
-                                    <span class="subject-tag text-xs font-semibold px-2 py-1 rounded-full" style="background-color: ${subjectColor}26; color: ${subjectColor};">${doubt.subject}</span>
-                                    <h3 class="text-lg font-bold text-main mt-2 break-words">${doubt.title}</h3>
-                                </div>
-                                <div class="text-xs text-subtle mt-4">${new Date(doubt.createdAt).toLocaleDateString()}</div>
-                            </div>
-
-                            <div class="confirm-delete-overlay">
-                            <p class="font-bold text-main text-center">Delete this doubt?</p>
-                            <div class="flex gap-2 mt-2">
-                                <button class="confirm-delete-yes px-4 py-1 text-sm rounded-md font-semibold btn-danger">Delete</button>
-                                <button class="confirm-delete-no px-4 py-1 text-sm rounded-md font-semibold btn-secondary">Cancel</button>
-                            </div>
-                            </div>
-
-                            <button class="delete-doubt-btn absolute top-2 right-2 p-1.5 rounded-full hover:bg-red-500/10 transition-colors z-20" title="Delete Doubt">
-                                <svg class="w-5 h-5 text-subtle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                            </button>
-                        `;
-                        
-                        card.addEventListener('click', () => {
-                            if (!card.classList.contains('confirming')) {
-                                openDoubtEditor(doubt.id);
-                            }
-                        });
-
+                        const statusClass = `status-${doubt.status.toLowerCase()}`;
+                        card.innerHTML = `<div class="card-content flex flex-col h-full"><div class="flex justify-between items-start mb-2"><span>${doubt.subject}</span><span class="status-badge ${statusClass}">${doubt.status}</span></div><div class="flex-grow pr-6"><h3 class="text-lg font-bold text-main mt-2 break-words">${doubt.title}</h3></div><div class="text-xs text-subtle mt-4">${new Date(doubt.createdAt).toLocaleString()}</div></div><div class="confirm-delete-overlay"><p class="font-bold text-main text-center">Delete this doubt?</p><div class="flex gap-2 mt-2"><button class="confirm-delete-yes px-4 py-1 text-sm rounded-md font-semibold btn-danger">Delete</button><button class="confirm-delete-no px-4 py-1 text-sm rounded-md font-semibold btn-secondary">Cancel</button></div></div><button class="delete-doubt-btn absolute top-2 right-2 p-1.5 rounded-full hover:bg-red-500/10 transition-colors z-20" title="Delete Doubt"><svg class="w-5 h-5 text-subtle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>`;
+                        card.addEventListener('click', () => !card.classList.contains('confirming') && openDoubtEditor(doubt.id));
                         doubtGrid.appendChild(card);
-
-                        const deleteBtn = card.querySelector('.delete-doubt-btn');
-                        const confirmYesBtn = card.querySelector('.confirm-delete-yes');
-                        const confirmNoBtn = card.querySelector('.confirm-delete-no');
-
-                        deleteBtn.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            card.classList.add('confirming');
-                        });
-
-                        confirmNoBtn.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            card.classList.remove('confirming');
-                        });
-
-                        confirmYesBtn.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            const doubtId = parseInt(card.dataset.id, 10);
-                            doubts = doubts.filter(d => d.id !== doubtId);
-                            saveDoubts();
-                            renderDoubtDashboard();
-                        });
-
                     });
                 }
+                addDoubtDashboardEventListeners();
+            };
+
+            const addDoubtDashboardEventListeners = () => {
+                document.querySelectorAll('.delete-doubt-btn').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); btn.closest('.doubt-card').classList.add('confirming'); }));
+                document.querySelectorAll('.confirm-delete-no').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); btn.closest('.doubt-card').classList.remove('confirming'); }));
+                document.querySelectorAll('.confirm-delete-yes').forEach(btn => btn.addEventListener('click', e => {
+                    e.stopPropagation();
+                    const card = btn.closest('.doubt-card');
+                    doubts = doubts.filter(d => d.id !== parseInt(card.dataset.id, 10));
+                    saveDoubts();
+                    renderDoubtDashboard();
+                }));
             };
 
             const populateFilterDropdown = () => {
                 filterSelect.innerHTML = '<option value="all">All Subjects</option>';
-                masterSubjectsList.forEach(subject => {
+                doubtSubjects.forEach(subject => {
                     const option = document.createElement('option');
-                    option.value = subject;
-                    option.textContent = subject;
-                    filterSelect.appendChild(option);
+                    option.value = subject; option.textContent = subject; filterSelect.appendChild(option);
                 });
             };
             
             // --- MODAL HANDLING ---
             const openDoubtModal = () => {
                 doubtSubjectSelect.innerHTML = '';
-                masterSubjectsList.forEach(subject => {
-                    const option = document.createElement('option');
-                    option.value = subject;
-                    option.textContent = subject;
-                    doubtSubjectSelect.appendChild(option);
-                });
-                doubtTitleInput.value = '';
-                doubtModal.classList.remove('hidden');
-                doubtTitleInput.focus();
+                doubtSubjects.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; doubtSubjectSelect.appendChild(o); });
+                doubtTitleInput.value = ''; doubtModal.classList.remove('hidden'); doubtTitleInput.focus();
             };
-
             const closeDoubtModal = () => doubtModal.classList.add('hidden');
-
             const handleConfirmDoubt = () => {
                 const title = doubtTitleInput.value.trim();
-                const subject = doubtSubjectSelect.value;
-                if (!title) {
-                    alert('Please enter a title for your doubt.');
-                    return;
-                }
-                const newDoubt = {
-                    id: Date.now(),
-                    title,
-                    subject,
-                    content: '',
-                    createdAt: new Date().toISOString()
-                };
-                doubts.push(newDoubt);
-                saveDoubts();
-                closeDoubtModal();
-                openDoubtEditor(newDoubt.id);
+                if (!title) return alert('Please enter a title.');
+                const newDoubt = { id: Date.now(), title, subject: doubtSubjectSelect.value, status: 'Unsolved', createdAt: new Date().toISOString(), editors: [{ title: "Question", content: "" }, { title: "Solution", content: "" }] };
+                doubts.push(newDoubt); saveDoubts(); closeDoubtModal(); openDoubtEditor(newDoubt.id);
+            };
+
+            // --- SUBJECTS MANAGER ---
+            const renderDoubtSubjectsManager = () => {
+                subjectsList.innerHTML = '';
+                doubtSubjects.forEach(subject => {
+                    const item = document.createElement('div');
+                    item.className = 'flex items-center justify-between p-2 rounded hover:bg-tertiary';
+                    item.innerHTML = `<span>${subject}</span><button data-subject="${subject}" class="delete-subject-btn p-1 text-subtle hover:text-danger rounded-full"><svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.134-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.067-2.09.92-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg></button>`;
+                    subjectsList.appendChild(item);
+                });
             };
             
             // --- EDITOR LOGIC ---
             const openDoubtEditor = (id) => {
-                currentEditingDoubtId = id;
-                const doubt = doubts.find(d => d.id === id);
-                if (!doubt) return;
-
-                doubtTitleEditor.value = doubt.title;
-                editorContent.innerHTML = doubt.content || '';
-                
-                audioPlayback.innerHTML = '';
-
+                currentEditingDoubtId = id; const doubt = doubts.find(d => d.id === id); if (!doubt) return;
+                doubtTitleEditor.value = doubt.title; currentEditorStatus = doubt.status; updateStatusButton(currentEditorStatus);
+                editorsWrapper.innerHTML = '';
+                if (!doubt.editors || doubt.editors.length === 0) doubt.editors = [{ title: "Question", content: doubt.questionContent || "" }, { title: "Solution", content: doubt.solutionContent || "" }];
+                doubt.editors.forEach(editorData => createNewEditorBox(editorData.title, editorData.content));
                 showDoubtEditor();
             };
 
             const saveCurrentDoubt = () => {
                 if (currentEditingDoubtId === null) return;
-                const doubtIndex = doubts.findIndex(d => d.id === currentEditingDoubtId);
-                if (doubtIndex === -1) return;
-
-                doubts[doubtIndex].title = doubtTitleEditor.value.trim();
-                doubts[doubtIndex].content = editorContent.innerHTML;
-                
-                saveDoubts();
-                alert('Doubt saved!');
+                const doubtIndex = doubts.findIndex(d => d.id === currentEditingDoubtId); if (doubtIndex === -1) return;
+                doubts[doubtIndex].title = doubtTitleEditor.value.trim(); doubts[doubtIndex].status = currentEditorStatus;
+                const editorData = [];
+                editorsWrapper.querySelectorAll('.custom-editor-block').forEach(block => editorData.push({ title: block.querySelector('.editor-title-input').value, content: block.querySelector('.doubt-editor-content').innerHTML }));
+                doubts[doubtIndex].editors = editorData; saveDoubts(); alert('Doubt saved!');
+            };
+            const updateStatusButton = (status) => {
+                changeStatusBtn.textContent = `Status: ${status}`; changeStatusBtn.className = `btn-secondary font-semibold py-2 px-4 rounded-lg status-badge status-${status.toLowerCase()}`;
+            };
+            const createNewEditorBox = (title = 'New Section', content = '') => {
+                const block = document.createElement('div'); block.className = 'custom-editor-block';
+                block.innerHTML = `<button class="delete-section-btn" title="Delete Section"><svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.134-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.067-2.09.92-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg></button><input type="text" value="${title}" class="editor-title-input text-lg font-semibold mb-2 text-subtle bg-transparent w-full focus:outline-none pr-8" placeholder="Section Title..."><div class="doubt-editor-container"><div class="doubt-editor-toolbar"></div><div contenteditable="true" class="doubt-editor-content">${content}</div></div>`;
+                editorsWrapper.appendChild(block);
+                const editorContentEl = block.querySelector('.doubt-editor-content'); const editorToolbarEl = block.querySelector('.doubt-editor-toolbar');
+                createToolbar(editorToolbarEl, editorContentEl); addPastingListeners(editorContentEl);
             };
             
-            // Rich Text Toolbar
-            editorView.querySelectorAll('.editor-tool-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const command = btn.dataset.command;
-                    if(command) {
-                        document.execCommand(command, false, null);
-                        editorContent.focus();
-                    }
+            // --- Toolbar & Pasting ---
+            const createToolbar = (toolbarEl, editorEl) => {
+                toolbarEl.innerHTML = `<button class="doubt-editor-tool-btn" data-command="bold" title="Bold"><b>B</b></button><button class="doubt-editor-tool-btn" data-command="italic" title="Italic"><i>I</i></button><button class="doubt-editor-tool-btn" data-command="insertUnorderedList" title="Bullet List">●</button><button class="doubt-editor-tool-btn" data-action="add-link" title="Add Link">🔗</button><button class="doubt-editor-tool-btn" data-action="upload-image" title="Upload Image">🖼️</button>`;
+                toolbarEl.querySelectorAll('button').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const command = btn.dataset.command; const action = btn.dataset.action; editorEl.focus();
+                        if (command) document.execCommand(command, false, null);
+                        else if (action === 'add-link') { const url = prompt("Enter URL:"); if(url) document.execCommand('createLink', false, url); } 
+                        else if (action === 'upload-image') { activeImageUploadTarget = editorEl; imageUploadInput.click(); }
+                    });
                 });
-            });
-            
-            addLinkBtn.addEventListener('click', () => {
-                const url = prompt("Enter the URL:");
-                if (url) document.execCommand('createLink', false, url);
-            });
-
-            addTodoBtn.addEventListener('click', () => {
-                const id = `todo-${Date.now()}`;
-                document.execCommand('insertHTML', false, `
-                    <div class="todo-item" id="${id}">
-                        <input type="checkbox" onchange="document.getElementById('${id}').classList.toggle('completed')">
-                        <label contenteditable="true">&nbsp;</label>
-                    </div><div>&nbsp;</div>`);
-            });
-            
-            // Enhanced Checkbox Logic
-            editorContent.addEventListener('keydown', (e) => {
-                const selection = window.getSelection();
-                if (!selection.rangeCount) return;
-
-                const node = selection.anchorNode;
-                const parentElement = node.nodeType === 3 ? node.parentElement : node;
-                const todoLabel = parentElement.closest('.todo-item label');
-
-                if (todoLabel) {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        const currentTodoItem = todoLabel.closest('.todo-item');
-                        const newTodoId = `todo-${Date.now()}`;
-                        const newTodoHTML = `
-                            <div class="todo-item" id="${newTodoId}">
-                                <input type="checkbox" onchange="document.getElementById('${newTodoId}').classList.toggle('completed')">
-                                <label contenteditable="true"></label>
-                            </div>`;
-                        currentTodoItem.insertAdjacentHTML('afterend', newTodoHTML);
-                        
-                        const newLabel = document.getElementById(newTodoId).querySelector('label');
-                        const range = document.createRange();
-                        const sel = window.getSelection();
-                        range.setStart(newLabel, 0);
-                        range.collapse(true);
-                        sel.removeAllRanges();
-                        sel.addRange(range);
-                    } else if (e.key === 'Backspace' && todoLabel.textContent.length === 0) {
-                        e.preventDefault();
-                        const todoItem = todoLabel.closest('.todo-item');
-                        const prevSibling = todoItem.previousElementSibling;
-                        todoItem.remove();
-                        if (prevSibling) {
-                            const prevLabel = prevSibling.querySelector('label');
-                            if (prevLabel) {
-                                const range = document.createRange();
-                                const sel = window.getSelection();
-                                range.selectNodeContents(prevLabel);
-                                range.collapse(false);
-                                sel.removeAllRanges();
-                                sel.addRange(range);
-                            }
-                        }
-                    }
-                }
-            });
-            
-            // Image pasting
-            editorContent.addEventListener('paste', (e) => {
-                const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-                for (const item of items) {
-                    if (item.type.indexOf('image') === 0) {
-                        e.preventDefault();
-                        const file = item.getAsFile();
-                        const reader = new FileReader();
-                        reader.onload = (event) => {
-                        document.execCommand('insertImage', false, event.target.result);
-                        };
-                        reader.readAsDataURL(file);
-                    }
-                }
-            });
-
-            // --- VOICE RECORDING LOGIC ---
-            const handleRecord = async () => {
-                if (mediaRecorder && mediaRecorder.state === 'recording') {
-                    mediaRecorder.stop();
-                } else {
-                    try {
-                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                        mediaRecorder = new MediaRecorder(stream);
-                        mediaRecorder.start();
-                        audioChunks = [];
-                        recordBtn.classList.add('recording');
-                        recordingStatus.textContent = 'Recording...';
-                        
-                        let seconds = 0;
-                        recordingInterval = setInterval(() => {
-                            seconds++;
-                            const min = Math.floor(seconds / 60).toString().padStart(2, '0');
-                            const sec = (seconds % 60).toString().padStart(2, '0');
-                            recordingTimer.textContent = `${min}:${sec}`;
-                        }, 1000);
-                        
-                        mediaRecorder.addEventListener('dataavailable', e => audioChunks.push(e.data));
-                        mediaRecorder.addEventListener('stop', () => {
-                            clearInterval(recordingInterval);
-                            recordBtn.classList.remove('recording');
-                            recordingStatus.textContent = 'Recording finished';
-                            recordingTimer.textContent = '00:00';
-
-                            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                            const audioUrl = URL.createObjectURL(audioBlob);
-                            
-                            const audio = document.createElement('audio');
-                            audio.src = audioUrl;
-                            audio.controls = true;
-
-                            const downloadLink = document.createElement('a');
-                            downloadLink.href = audioUrl;
-                            downloadLink.download = `doubt-note-${currentEditingDoubtId}.webm`;
-                            downloadLink.innerHTML = `<svg class="w-6 h-6 text-subtle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>`;
-                            downloadLink.title = "Download voice note";
-                            downloadLink.className = "p-2 hover:bg-main rounded-full";
-                            
-                            audioPlayback.innerHTML = '';
-                            audioPlayback.appendChild(audio);
-                            audioPlayback.appendChild(downloadLink);
-
-                            stream.getTracks().forEach(track => track.stop());
-                        });
-                    } catch (err) {
-                        alert('Microphone access denied. Please allow microphone access in your browser settings.');
-                        console.error("Error accessing microphone:", err);
-                    }
-                }
             };
-            
+            const addPastingListeners = (editorEl) => {
+                editorEl.addEventListener('paste', (e) => {
+                    const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+                    for (const item of items) {
+                        if (item.type.indexOf('image') === 0) { e.preventDefault(); const file = item.getAsFile(); const reader = new FileReader(); reader.onload = (event) => document.execCommand('insertImage', false, event.target.result); reader.readAsDataURL(file); return; }
+                    }
+                    e.preventDefault(); const text = (e.clipboardData || window.clipboardData).getData('text/plain'); const isCode = text.includes('\n') && /[\{\}\(\);=\[\]]/.test(text);
+                    if (isCode) {
+                        const id = `code-${Date.now()}`; const codeBlockHTML = `<div class="code-block-wrapper" id="${id}"><div class="code-block-header"><span>code</span><button class="copy-code-btn">Copy</button></div><pre><code class="language-js">${text.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</code></pre></div><div>&nbsp;</div>`;
+                        document.execCommand('insertHTML', false, codeBlockHTML);
+                        const newCodeBlock = document.querySelector(`#${id} pre code`); hljs.highlightElement(newCodeBlock);
+                        document.querySelector(`#${id} .copy-code-btn`).addEventListener('click', (btnEvent) => { navigator.clipboard.writeText(text); btnEvent.target.textContent = 'Copied!'; setTimeout(() => { btnEvent.target.textContent = 'Copy'; }, 2000); });
+                    } else { document.execCommand('insertText', false, text); }
+                });
+            };
+
             // --- EVENT LISTENERS ---
             addDoubtBtn.addEventListener('click', openDoubtModal);
             cancelDoubtModalBtn.addEventListener('click', closeDoubtModal);
@@ -3386,16 +3214,52 @@
             saveDoubtBtn.addEventListener('click', saveCurrentDoubt);
             searchInput.addEventListener('input', renderDoubtDashboard);
             filterSelect.addEventListener('change', renderDoubtDashboard);
-            recordBtn.addEventListener('click', handleRecord);
+            addEditorBtn.addEventListener('click', () => createNewEditorBox());
+            changeStatusBtn.addEventListener('click', () => {
+                const currentStatusIndex = STATUSES.indexOf(currentEditorStatus);
+                currentEditorStatus = STATUSES[(currentStatusIndex + 1) % STATUSES.length];
+                updateStatusButton(currentEditorStatus);
+            });
+            imageUploadInput.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files[0] && activeImageUploadTarget) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => { activeImageUploadTarget.focus(); document.execCommand('insertImage', false, event.target.result); };
+                    reader.readAsDataURL(e.target.files[0]);
+                }
+            });
+            editorsWrapper.addEventListener('click', (e) => {
+                const link = e.target.closest('a');
+                if (link && link.href) { e.preventDefault(); window.open(link.href, '_blank', 'noopener,noreferrer'); }
+                const deleteBtn = e.target.closest('.delete-section-btn');
+                if (deleteBtn) {
+                    if (confirm('Are you sure you want to delete this section?')) {
+                        deleteBtn.closest('.custom-editor-block').remove();
+                    }
+                }
+            });
+            manageSubjectsBtn.addEventListener('click', () => { renderDoubtSubjectsManager(); manageSubjectsModal.classList.remove('hidden'); });
+            closeSubjectsModalBtn.addEventListener('click', () => manageSubjectsModal.classList.add('hidden'));
+            subjectsList.addEventListener('click', (e) => {
+                const deleteBtn = e.target.closest('.delete-subject-btn');
+                if (deleteBtn) {
+                    const subjectToDelete = deleteBtn.dataset.subject;
+                    const doubtsWithSubject = doubts.filter(d => d.subject === subjectToDelete).length;
+                    if (confirm(`This will delete the subject "${subjectToDelete}" and its ${doubtsWithSubject} associated doubt(s). This action cannot be undone. Are you sure?`)) {
+                        doubtSubjects = doubtSubjects.filter(s => s !== subjectToDelete);
+                        doubts = doubts.filter(d => d.subject !== subjectToDelete);
+                        saveDoubtSubjects(); saveDoubts(); renderDoubtSubjectsManager(); populateFilterDropdown(); renderDoubtDashboard();
+                    }
+                }
+            });
 
             // --- INITIALIZATION ---
             populateFilterDropdown();
             renderDoubtDashboard();
-        };
-
+         };
         /*************************************/
         /* --- DOUBT DASHBOARD LOGIC END --- */
         /*************************************/
+
 
         // --- LECTURE TRACKER LOGIC ---
         const renderLectureTracker = () => {
@@ -3515,7 +3379,7 @@
             
             renderCalendar();
             renderSubjects();
-            initDoubtDashboard();
+            // Moved initDoubtDashboard to the showDoubtDashboardView function
             populateMonthSelectors();
 
             // Event Listeners for new/modified features
