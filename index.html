@@ -676,7 +676,7 @@
                         <div class="dashboard-card">
                            <div class="flex flex-wrap justify-between items-center gap-y-2 mb-4">
                                <h2 class="text-lg font-bold text-main">Subject Rankings</h2>
-                               <div class="flex items-center gap-2">
+                               <div class="flex items-center gap-2 flex-wrap">
                                    <select id="ranker-mode-select" class="dashboard-select text-sm">
                                        <option value="hours">Total Hours</option>
                                        <option value="Lecture">Lectures</option>
@@ -684,11 +684,14 @@
                                        <option value="Practice">Practices</option>
                                        <option value="Test">Tests</option>
                                    </select>
-                                   <div id="ranker-toggles" class="flex space-x-1 bg-main p-1 rounded-lg">
-                                       <button data-period="week" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">Week</button>
-                                       <button data-period="month" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">Month</button>
-                                       <button data-period="all" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">All</button>
-                                   </div>
+                                   <div id="ranker-toggles" class="flex items-center gap-2">
+                                        <div class="flex space-x-1 bg-main p-1 rounded-lg">
+                                            <button data-period="week" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">Week</button>
+                                            <button data-period="month" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">Month</button>
+                                            <button data-period="all" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">All</button>
+                                        </div>
+                                        <select id="ranker-month-select" class="dashboard-select text-sm hidden"></select>
+                                    </div>
                                </div>
                            </div>
                            <div id="ranker-list" class="space-y-4"></div>
@@ -696,7 +699,7 @@
                         <div class="dashboard-card">
                             <div class="flex flex-wrap justify-between items-center gap-y-2 mb-4">
                                <h2 class="text-lg font-bold text-main">Least Studied Subjects</h2>
-                               <div class="flex items-center gap-2">
+                               <div class="flex items-center gap-2 flex-wrap">
                                     <select id="least-studied-mode-select" class="dashboard-select text-sm">
                                         <option value="hours">Total Hours</option>
                                         <option value="Lecture">Lectures</option>
@@ -704,9 +707,12 @@
                                         <option value="Practice">Practices</option>
                                         <option value="Test">Tests</option>
                                     </select>
-                                   <div id="least-studied-toggles" class="flex space-x-1 bg-main p-1 rounded-lg">
-                                       <button data-period="week" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">Week</button>
-                                       <button data-period="month" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">Month</button>
+                                   <div id="least-studied-toggles" class="flex items-center gap-2">
+                                        <div class="flex space-x-1 bg-main p-1 rounded-lg">
+                                            <button data-period="week" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">Week</button>
+                                            <button data-period="month" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">Month</button>
+                                        </div>
+                                        <select id="least-studied-month-select" class="dashboard-select text-sm hidden"></select>
                                    </div>
                                </div>
                             </div>
@@ -1028,10 +1034,10 @@
         const headerDoubtBtn = document.getElementById('header-doubt-btn');
         const backupMenuBtn = document.getElementById('backup-menu-btn');
         const importMenuBtn = document.getElementById('import-menu-btn');
-        const resetDataBtn = document.getElementById('reset-data-btn'); // New selector
+        const resetDataBtn = document.getElementById('reset-data-btn');
 
         // Dashboard Selectors
-        const welcomeMessageEl = document.getElementById('welcome-message'); // New selector
+        const welcomeMessageEl = document.getElementById('welcome-message');
         const mostStudiedSubjectEl = document.getElementById('most-studied-subject');
         const mostStudiedHoursEl = document.getElementById('most-studied-hours');
         const mostStudiedRatingEl = document.getElementById('most-studied-rating');
@@ -1068,9 +1074,11 @@
         const rankerList = document.getElementById('ranker-list');
         const leastStudiedToggles = document.getElementById('least-studied-toggles');
         const leastStudiedList = document.getElementById('least-studied-list');
-        const nameModal = document.getElementById('name-modal'); // New selector
-        const nameInput = document.getElementById('name-input'); // New selector
-        const confirmNameBtn = document.getElementById('confirm-name-btn'); // New selector
+        const nameModal = document.getElementById('name-modal');
+        const nameInput = document.getElementById('name-input');
+        const confirmNameBtn = document.getElementById('confirm-name-btn');
+        const rankerMonthSelect = document.getElementById('ranker-month-select');
+        const leastStudiedMonthSelect = document.getElementById('least-studied-month-select');
 
 
         // --- STATE MANAGEMENT ---
@@ -1094,7 +1102,7 @@
         let facultyData = JSON.parse(localStorage.getItem('facultyData')) || {};
         let stackedBarChart = null;
         const activityTypes = ['None', 'Lecture', 'Revision', 'Practice', 'Test'];
-        let userName = null; // New state
+        let userName = null;
         
         // --- TIMER STATE ---
         let studySessionEndTime = null; // Will hold 'HH:MM' string
@@ -1897,20 +1905,60 @@
 
 
         // --- DASHBOARD LOGIC ---
-        const calculateStatsByMode = (period, mode) => {
+        const populateMonthSelectors = () => {
+            const months = new Set();
+            Object.keys(studyData).forEach(dateKey => {
+                months.add(dateKey.substring(0, 7)); // 'YYYY-MM'
+            });
+
+            const sortedMonths = Array.from(months).sort().reverse();
+            rankerMonthSelect.innerHTML = '';
+            leastStudiedMonthSelect.innerHTML = '';
+
+            if (sortedMonths.length === 0) {
+                const option = new Option("No Data", "");
+                option.disabled = true;
+                rankerMonthSelect.add(option.cloneNode(true));
+                leastStudiedMonthSelect.add(option);
+                return;
+            }
+
+            sortedMonths.forEach(monthStr => {
+                const [year, month] = monthStr.split('-');
+                const date = new Date(year, parseInt(month, 10) - 1, 1);
+                const text = date.toLocaleString('default', { month: 'long', year: 'numeric' });
+                const option = new Option(text, monthStr);
+                rankerMonthSelect.add(option.cloneNode(true));
+                leastStudiedMonthSelect.add(option);
+            });
+        };
+        
+        const calculateStatsByMode = (period, mode, specificMonth = null) => {
             const stats = {};
             activeSubjectPool.forEach(s => stats[s] = { count: 0, minutes: 0 });
-            const dateKeys = getDateKeysForPeriod(period);
+            const dateKeys = getDateKeysForPeriod(period, specificMonth);
 
             dateKeys.forEach(dateKey => {
                 if (studyData[dateKey]) {
                     studyData[dateKey].flat().forEach(subject => {
                         if (!activeSubjectPool.includes(subject.name)) return;
-                        if (!subject.completed) return;
                         
-                        const totalSubTasks = subject.subTasks.length;
-                        if (totalSubTasks > 0) {
-                            const minutesPerSubTask = (subject.hours * 60) / totalSubTasks;
+                        // Check for completion is now handled inside
+                        const subjectTotalMinutes = subject.hours * 60;
+                        if (!subject.subTasks || subject.subTasks.length === 0) {
+                            // No subtasks, count the parent if completed
+                            if (subject.completed) {
+                                const status = subject.status;
+                                if (mode === 'hours') {
+                                    stats[subject.name].minutes += subjectTotalMinutes;
+                                } else if (status === mode) {
+                                    stats[subject.name].count++;
+                                    stats[subject.name].minutes += subjectTotalMinutes;
+                                }
+                            }
+                        } else {
+                            // Has subtasks, check each one
+                            const minutesPerSubTask = subjectTotalMinutes / subject.subTasks.length;
                             subject.subTasks.forEach(task => {
                                 if (task.completed) {
                                     const status = task.status || subject.status;
@@ -1922,14 +1970,6 @@
                                     }
                                 }
                             });
-                        } else { // No subtasks, count the parent subject
-                            const status = subject.status;
-                             if (mode === 'hours') {
-                                stats[subject.name].minutes += subject.hours * 60;
-                            } else if (status === mode) {
-                                stats[subject.name].count++;
-                                stats[subject.name].minutes += subject.hours * 60;
-                            }
                         }
                     });
                 }
@@ -1937,7 +1977,7 @@
             return stats;
         }
 
-        const getDateKeysForPeriod = (period) => {
+        const getDateKeysForPeriod = (period, specificMonth = null) => {
             const now = new Date();
             let dateKeysToInclude = [];
 
@@ -1954,8 +1994,9 @@
                     dateKeysToInclude.push(formatDateKey(date));
                 }
             } else if (period === 'month') {
-                const year = now.getFullYear();
-                const month = now.getMonth();
+                const targetDate = specificMonth ? new Date(specificMonth + '-02') : new Date(); // Use day 2 to avoid timezone issues with month changes
+                const year = targetDate.getFullYear();
+                const month = targetDate.getMonth();
                 const daysInMonth = new Date(year, month + 1, 0).getDate();
                 for (let i = 1; i <= daysInMonth; i++) {
                     const date = new Date(year, month, i);
@@ -2024,19 +2065,45 @@
             dateKeys.forEach(dateKey => {
                 if (studyData[dateKey]) {
                      studyData[dateKey].flat().forEach(subject => {
-                        if (subject.completed) {
-                            stats[subject.name] = (stats[subject.name] || 0) + subject.hours;
-                        }
+                        const totalCompletedMinutes = calculateCompletedMinutesForDay(dateKey, subject.name);
+                        stats[subject.name] = (stats[subject.name] || 0) + (totalCompletedMinutes / 60);
                     });
                 }
             });
-            return stats;
+            // This logic is complex because a subject can appear multiple times.
+            // Let's simplify and aggregate.
+            const aggregatedStats = {};
+             dateKeys.forEach(dateKey => {
+                 if(studyData[dateKey]) {
+                     studyData[dateKey].forEach(subject => {
+                         const completedMins = calculateCompletedMinutesForDay(dateKey, subject.name);
+                         if (completedMins > 0) {
+                            aggregatedStats[subject.name] = (aggregatedStats[subject.name] || 0) + (subject.hours * 60); // Use scheduled hours for weight
+                         }
+                     });
+                 }
+             });
+
+            // Refactoring to a simpler sum of completed hours
+            const finalStats = {};
+             activeSubjectPool.forEach(subj => finalStats[subj] = 0);
+             dateKeys.forEach(dateKey => {
+                const minutesForDay = calculateCompletedMinutesForDay(dateKey);
+                if (studyData[dateKey]) {
+                    studyData[dateKey].forEach(subject => {
+                        finalStats[subject.name] += calculateCompletedMinutesForDay(dateKey, subject.name) / 60;
+                    });
+                }
+             });
+
+
+            return calculateStatsByMode(period, 'hours');
         };
 
 
         const renderStarRating = (container, subjectName) => {
             container.innerHTML = '';
-            if (!subjectName) return; 
+            if (!subjectName || subjectName === "N/A") return; 
             const currentRating = subjectRatings[subjectName] || 0;
             for (let i = 1; i <= 5; i++) {
                 const star = document.createElement('span');
@@ -2057,15 +2124,14 @@
             const mostPeriod = mostStudiedPeriodSelect.value;
             const leastPeriod = leastStudiedPeriodSelect.value;
             
-            const mostStats = calculatePeriodStats(mostPeriod);
-            const leastStats = calculatePeriodStats(leastPeriod);
+            const mostStats = calculateStatsByMode(mostPeriod, 'hours');
+            const leastStats = calculateStatsByMode(leastPeriod, 'hours');
 
-            const mostStudiedSubjects = Object.keys(mostStats);
-            if (mostStudiedSubjects.length > 0) {
-                const sorted = mostStudiedSubjects.sort((a, b) => mostStats[b] - mostStats[a]);
-                const mostStudied = sorted[0];
+            const mostEntries = Object.entries(mostStats).filter(([,data]) => data.minutes > 0);
+            if (mostEntries.length > 0) {
+                const [mostStudied, data] = mostEntries.sort(([, a], [, b]) => b.minutes - a.minutes)[0];
                 mostStudiedSubjectEl.textContent = mostStudied;
-                mostStudiedHoursEl.textContent = `${mostStats[mostStudied]} hours`;
+                mostStudiedHoursEl.textContent = `${formatMinutesToHoursAndMinutes(data.minutes)}`;
                 renderStarRating(mostStudiedRatingEl, mostStudied);
                 renderFacultyInfo(document.getElementById('most-studied-faculty-container'), mostStudied);
             } else {
@@ -2075,12 +2141,11 @@
                 document.getElementById('most-studied-faculty-container').innerHTML = '';
             }
 
-            const leastStudiedSubjects = Object.keys(leastStats).filter(s => leastStats[s] > 0);
-            if (leastStudiedSubjects.length > 0) {
-                 const sorted = leastStudiedSubjects.sort((a, b) => leastStats[a] - leastStats[b]);
-                const leastStudied = sorted[0];
+            const leastEntries = Object.entries(leastStats).filter(([,data]) => data.minutes > 0);
+            if (leastEntries.length > 0) {
+                const [leastStudied, data] = leastEntries.sort(([, a], [, b]) => a.minutes - b.minutes)[0];
                 leastStudiedSubjectEl.textContent = leastStudied;
-                leastStudiedHoursEl.textContent = `${leastStats[leastStudied]} hours`;
+                leastStudiedHoursEl.textContent = `${formatMinutesToHoursAndMinutes(data.minutes)}`;
                 renderStarRating(leastStudiedRatingEl, leastStudied);
                 renderFacultyInfo(document.getElementById('least-studied-faculty-container'), leastStudied);
             } else {
@@ -2608,15 +2673,11 @@
             }
         };
 
-        const renderTopSubjects = (period) => {
+        const renderTopSubjects = (period, specificMonth = null) => {
             rankerList.innerHTML = '';
             const rankerMode = document.getElementById('ranker-mode-select').value;
 
-            document.querySelectorAll('#ranker-toggles .ranker-toggle-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.period === period);
-            });
-
-            const stats = calculateStatsByMode(period, rankerMode === 'hours' ? 'hours' : rankerMode);
+            const stats = calculateStatsByMode(period, rankerMode, specificMonth);
             
             const sortedSubjects = Object.entries(stats)
                 .filter(([, data]) => (rankerMode === 'hours' ? data.minutes : data.count) > 0)
@@ -2661,15 +2722,11 @@
             });
         };
         
-        const renderLeastStudiedTable = (period) => {
+        const renderLeastStudiedTable = (period, specificMonth = null) => {
             leastStudiedList.innerHTML = '';
             const rankerMode = document.getElementById('least-studied-mode-select').value;
-
-            document.querySelectorAll('#least-studied-toggles .ranker-toggle-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.period === period);
-            });
-
-            const stats = calculateStatsByMode(period, rankerMode);
+            
+            const stats = calculateStatsByMode(period, rankerMode, specificMonth);
             const sortedSubjects = Object.entries(stats).sort(([, a], [, b]) => (rankerMode === 'hours' ? b.minutes - a.minutes : b.count - a.count));
 
             if (sortedSubjects.length === 0) {
@@ -2703,27 +2760,53 @@
         };
 
         rankerToggles.addEventListener('click', (e) => {
-            if(e.target.matches('.ranker-toggle-btn')) {
+            if (e.target.matches('.ranker-toggle-btn')) {
                 const period = e.target.dataset.period;
-                renderTopSubjects(period);
+                document.querySelectorAll('#ranker-toggles .ranker-toggle-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.period === period);
+                });
+                rankerMonthSelect.classList.toggle('hidden', period !== 'month');
+                const specificMonth = period === 'month' ? rankerMonthSelect.value : null;
+                renderTopSubjects(period, specificMonth);
             }
+        });
+
+        rankerMonthSelect.addEventListener('change', () => {
+            const selectedMonth = rankerMonthSelect.value;
+            renderTopSubjects('month', selectedMonth);
         });
 
         document.getElementById('ranker-mode-select').addEventListener('change', () => {
-            const activePeriod = document.querySelector('#ranker-toggles .ranker-toggle-btn.active').dataset.period;
-            renderTopSubjects(activePeriod);
+            const activePeriodBtn = document.querySelector('#ranker-toggles .ranker-toggle-btn.active');
+            if (!activePeriodBtn) return;
+            const period = activePeriodBtn.dataset.period;
+            const specificMonth = period === 'month' ? rankerMonthSelect.value : null;
+            renderTopSubjects(period, specificMonth);
         });
         
         leastStudiedToggles.addEventListener('click', (e) => {
-            if(e.target.matches('.ranker-toggle-btn')) {
+            if (e.target.matches('.ranker-toggle-btn')) {
                 const period = e.target.dataset.period;
-                renderLeastStudiedTable(period);
+                document.querySelectorAll('#least-studied-toggles .ranker-toggle-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.period === period);
+                });
+                leastStudiedMonthSelect.classList.toggle('hidden', period !== 'month');
+                const specificMonth = period === 'month' ? leastStudiedMonthSelect.value : null;
+                renderLeastStudiedTable(period, specificMonth);
             }
+        });
+        
+        leastStudiedMonthSelect.addEventListener('change', () => {
+            const selectedMonth = leastStudiedMonthSelect.value;
+            renderLeastStudiedTable('month', selectedMonth);
         });
 
          document.getElementById('least-studied-mode-select').addEventListener('change', () => {
-            const activePeriod = document.querySelector('#least-studied-toggles .ranker-toggle-btn.active').dataset.period;
-            renderLeastStudiedTable(activePeriod);
+            const activePeriodBtn = document.querySelector('#least-studied-toggles .ranker-toggle-btn.active');
+            if (!activePeriodBtn) return;
+            const period = activePeriodBtn.dataset.period;
+            const specificMonth = period === 'month' ? leastStudiedMonthSelect.value : null;
+            renderLeastStudiedTable(period, specificMonth);
         });
 
         const renderStackedBarGraph = () => {
@@ -2855,14 +2938,14 @@
                     assignments: localStorage.getItem('assignments') || '[]',
                     masterSubjectsList: localStorage.getItem('masterSubjectsList') || '[]',
                     activeSubjectPool: localStorage.getItem('activeSubjectPool') || '[]',
-                    dDayTarget: localStorage.getItem('dDayTarget'), // Can be null
+                    dDayTarget: localStorage.getItem('dDayTarget'),
                     studyBaseTheme: localStorage.getItem('studyBaseTheme') || 'dark',
                     studyAccentColor: localStorage.getItem('studyAccentColor') || 'green',
                     doubtsDashboard: localStorage.getItem('doubtsDashboard') || '[]',
-                    studySessionEndTime: localStorage.getItem('studySessionEndTime'), // Added for backup
+                    studySessionEndTime: localStorage.getItem('studySessionEndTime'),
                     pinnedSubjects: localStorage.getItem('pinnedSubjects') || '[]',
                     facultyData: localStorage.getItem('facultyData') || '{}',
-                    userName: localStorage.getItem('userName') // Added for backup
+                    userName: localStorage.getItem('userName')
                 };
 
                 const jsonString = JSON.stringify(dataToBackup, null, 2);
@@ -2900,25 +2983,18 @@
                         const importedData = JSON.parse(event.target.result);
                         
                         if (confirm('Are you sure you want to import this data? This will overwrite all your current data.')) {
-                            // Basic validation
                             const requiredKeys = ['studyData', 'masterSubjectsList', 'activeSubjectPool'];
                             const hasRequiredKeys = requiredKeys.every(key => key in importedData);
                             if (!hasRequiredKeys) {
                                 alert('Import failed: The backup file seems to be invalid or corrupted.');
                                 return;
                             }
-
-                            // Clear existing data before import
                             localStorage.clear();
-
-                            // Set each item from the imported file
                             Object.keys(importedData).forEach(key => {
-                                // The value from the file is already a string
                                 if (importedData[key] !== null && importedData[key] !== undefined) {
                                     localStorage.setItem(key, importedData[key]);
                                 }
                             });
-
                             alert('Data imported successfully! The application will now reload.');
                             location.reload();
                         }
@@ -3440,11 +3516,14 @@
             renderCalendar();
             renderSubjects();
             initDoubtDashboard();
+            populateMonthSelectors();
+
+            // Event Listeners for new/modified features
             backupMenuBtn.addEventListener('click', handleBackupData);
             importMenuBtn.addEventListener('click', handleImportData);
-            resetDataBtn.addEventListener('click', handleResetData); // New listener
-            confirmNameBtn.addEventListener('click', handleConfirmName); // New listener
-            nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') handleConfirmName(); }); // New listener
+            resetDataBtn.addEventListener('click', handleResetData);
+            confirmNameBtn.addEventListener('click', handleConfirmName);
+            nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') handleConfirmName(); });
 
             // User Name Logic
             userName = localStorage.getItem('userName');
