@@ -186,18 +186,7 @@
             width: 150px;
             height: 150px;
         }
-
-        #learning-time-chart {
-            transform: rotate(-90deg);
-        }
         
-        #learning-time-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-        }
         #mini-cal-grid-days .day.today {
             background-color: var(--accent-primary);
             color: var(--text-on-accent);
@@ -210,7 +199,7 @@
             justify-content: center;
         }
 
-        /* Assignment Status Styles */
+        /* Assignment & Activity Status Styles */
         .status-btn {
             padding: 0.25rem 0.75rem;
             border-radius: 9999px;
@@ -221,9 +210,15 @@
             cursor: pointer;
             transition: background-color 0.2s, color 0.2s;
         }
-        .status-upcoming { background-color: #3b82f633; color: #60a5fa; }
-        .status-in-progress { background-color: #f59e0b33; color: #fbbf24; }
-        .status-completed { background-color: #16a34a33; color: #4ade80; }
+        .status-none { background-color: #e5e7eb33; color: #9ca3af; } /* Gray */
+        .status-upcoming { background-color: #3b82f633; color: #60a5fa; } /* Blue */
+        .status-in-progress { background-color: #f59e0b33; color: #fbbf24; } /* Amber */
+        .status-completed { background-color: #16a34a33; color: #4ade80; } /* Green */
+        .status-lecture { background-color: #60a5fa33; color: #60a5fa; } /* Blue */
+        .status-revision { background-color: #c084fc33; color: #c084fc; } /* Purple */
+        .status-practice { background-color: #fb923c33; color: #fb923c; } /* Orange */
+        .status-test { background-color: #f8717133; color: #f87171; } /* Red */
+
 
         .assignment-item .delete-assignment-btn {
             opacity: 0;
@@ -399,6 +394,34 @@
             font-weight: 600;
             color: var(--text-secondary);
         }
+        #stacked-bar-chart-container {
+            position: relative;
+            height: 16rem; /* 256px */
+            overflow-x: auto;
+        }
+        #stacked-bar-chart {
+            min-width: 400px;
+        }
+
+        /* Custom Scrollbar Styles */
+        /* For Webkit browsers (Chrome, Safari) */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background-color: var(--border-secondary);
+            border-radius: 10px;
+            border: 2px solid var(--bg-tertiary);
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: var(--text-secondary);
+        }
+
     </style>
 </head>
 <body class="text-gray-800 dark:text-gray-300">
@@ -454,7 +477,7 @@
                 <div class="flex items-center justify-between mb-6">
                     <div class="flex items-center space-x-2 w-28 justify-start">
                          <button class="hamburger-menu-btn p-2 rounded-full hover:bg-tertiary transition-colors">
-                              <svg class="w-6 h-6 text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                             <svg class="w-6 h-6 text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                          </button>
                     </div>
                     <div class="flex items-center">
@@ -501,7 +524,7 @@
                         <h3 id="selected-date-heading" class="text-lg md:text-xl font-bold text-main mb-2 md:mb-0">Select a date</h3>
                         <div class="flex items-center space-x-2">
                             <div id="progress-summary" class="flex items-center space-x-2 text-md font-semibold" style="color: var(--accent-primary);"></div>
-                            <button id="edit-subjects-btn" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm font-semibold shadow-sm">Edit</button>
+                            <button id="edit-subjects-btn" class="px-4 py-2 btn-secondary transition-colors text-sm font-semibold shadow-sm rounded-lg">Edit</button>
                             <button id="randomize-btn" class="px-4 py-2 btn-primary transition-colors text-sm font-semibold shadow-sm rounded-lg">Randomize</button>
                         </div>
                     </div>
@@ -543,6 +566,7 @@
                                  <h2 class="text-lg font-bold text-main mb-1">Most Studied</h2>
                                  <p id="most-studied-subject" class="text-2xl font-bold" style="color: var(--accent-primary);">Loading...</p>
                                  <p id="most-studied-hours" class="text-subtle font-semibold">-- hours</p>
+                                 <div id="most-studied-faculty-container" class="text-sm text-subtle mt-2"></div>
                              </div>
                              <select id="most-studied-period" class="dashboard-select">
                                  <option value="all">All Time</option>
@@ -563,6 +587,7 @@
                                  <h2 class="text-lg font-bold text-main mb-1">Least Studied</h2>
                                  <p id="least-studied-subject" class="text-2xl font-bold" style="color: var(--accent-primary);">Loading...</p>
                                  <p id="least-studied-hours" class="text-subtle font-semibold">-- hours</p>
+                                 <div id="least-studied-faculty-container" class="text-sm text-subtle mt-2"></div>
                              </div>
                              <select id="least-studied-period" class="dashboard-select">
                                  <option value="all">All Time</option>
@@ -575,6 +600,39 @@
                             <p class="text-sm font-medium text-subtle mb-1">Rate this subject</p>
                             <div id="least-studied-rating" class="star-rating flex space-x-1 text-2xl"></div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Lecture Tracker -->
+                <div class="dashboard-card">
+                    <h2 class="text-lg font-bold text-main mb-4">Lecture Tracker</h2>
+                    <div class="flex items-center">
+                        <div id="lecture-tracker-cards" class="flex-grow flex items-center gap-4 overflow-x-auto pb-3">
+                            <!-- Pinned subject cards will be injected here by JS -->
+                        </div>
+                        <button id="add-tracker-card-btn" title="Pin a new subject tracker" class="ml-4 w-10 h-10 rounded-lg btn-secondary flex-shrink-0 flex items-center justify-center transition-transform hover:scale-110">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                        </button>
+                    </div>
+                </div>
+
+                 <!-- Stacked Bar Graph -->
+                 <div class="dashboard-card">
+                    <div class="flex flex-wrap justify-between items-center gap-4 mb-4">
+                        <h2 class="text-lg font-bold text-main">Activity Comparison</h2>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <select id="stacked-bar-criteria1" class="dashboard-select text-sm"></select>
+                            <span class="font-semibold text-subtle">vs</span>
+                            <select id="stacked-bar-criteria2" class="dashboard-select text-sm"></select>
+                            <select id="stacked-bar-period" class="dashboard-select text-sm">
+                                <option value="week">This Week</option>
+                                <option value="month">This Month</option>
+                                <option value="all">All Time</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="stacked-bar-chart-container">
+                         <canvas id="stacked-bar-chart"></canvas>
                     </div>
                 </div>
 
@@ -630,24 +688,41 @@
                     <div class="space-y-6">
                         <!-- Subject Ranker Card -->
                        <div class="dashboard-card">
-                           <div class="flex justify-between items-center mb-4">
+                           <div class="flex flex-wrap justify-between items-center gap-y-2 mb-4">
                                <h2 class="text-lg font-bold text-main">Subject Rankings</h2>
-                               <div id="ranker-toggles" class="flex space-x-1 bg-main p-1 rounded-lg">
-                                   <button data-period="week" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">This Week</button>
-                                   <button data-period="month" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">This Month</button>
-                                   <button data-period="all" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">All Time</button>
+                               <div class="flex items-center gap-2">
+                                   <select id="ranker-mode-select" class="dashboard-select text-sm">
+                                       <option value="hours">Total Hours</option>
+                                       <option value="Lecture">Lectures</option>
+                                       <option value="Revision">Revisions</option>
+                                       <option value="Practice">Practices</option>
+                                       <option value="Test">Tests</option>
+                                   </select>
+                                   <div id="ranker-toggles" class="flex space-x-1 bg-main p-1 rounded-lg">
+                                       <button data-period="week" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">Week</button>
+                                       <button data-period="month" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">Month</button>
+                                       <button data-period="all" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">All</button>
+                                   </div>
                                </div>
                            </div>
-                           <h3 class="font-semibold text-main mb-2">Top 7 Subjects</h3>
                            <div id="ranker-list" class="space-y-4"></div>
                        </div>
-                       <!-- Least Studied -->
-                        <div class="dashboard-card">
-                            <div class="flex justify-between items-center mb-4">
+                        <!-- Least Studied -->
+                         <div class="dashboard-card">
+                            <div class="flex flex-wrap justify-between items-center gap-y-2 mb-4">
                                <h2 class="text-lg font-bold text-main">Least Studied Subjects</h2>
-                               <div id="least-studied-toggles" class="flex space-x-1 bg-main p-1 rounded-lg">
-                                   <button data-period="week" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">This Week</button>
-                                   <button data-period="month" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">This Month</button>
+                               <div class="flex items-center gap-2">
+                                    <select id="least-studied-mode-select" class="dashboard-select text-sm">
+                                        <option value="hours">Total Hours</option>
+                                        <option value="Lecture">Lectures</option>
+                                        <option value="Revision">Revisions</option>
+                                        <option value="Practice">Practices</option>
+                                        <option value="Test">Tests</option>
+                                    </select>
+                                   <div id="least-studied-toggles" class="flex space-x-1 bg-main p-1 rounded-lg">
+                                       <button data-period="week" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">Week</button>
+                                       <button data-period="month" class="ranker-toggle-btn px-3 py-1 text-sm font-semibold rounded-md transition-colors">Month</button>
+                                   </div>
                                </div>
                             </div>
                             <div id="least-studied-container" class="overflow-y-auto">
@@ -680,13 +755,8 @@
                             <option value="all">All Time</option>
                         </select>
                     </div>
-                    <div class="flex justify-center items-center my-4">
-                       <div id="learning-time-chart-container">
-                            <svg id="learning-time-chart" width="150" height="150" viewBox="0 0 36 36" class="w-full h-full"></svg>
-                            <div id="learning-time-text">
-                                <span id="learning-time-total" class="text-2xl font-bold text-main">0h</span>
-                            </div>
-                       </div>
+                    <div class="flex justify-center items-center my-4" id="learning-time-chart-container">
+                        <canvas id="learning-time-chart-canvas"></canvas>
                     </div>
                     <div id="learning-time-legend" class="mt-4 space-y-2"></div>
                 </div>
@@ -701,13 +771,13 @@
                 </div>
                  <!-- Assignments Card -->
                  <div class="dashboard-card">
-                       <div class="flex justify-between items-center mb-4">
-                           <h2 class="text-lg font-bold text-main">Assignments</h2>
-                           <button id="add-assignment-btn" class="w-8 h-8 rounded-lg btn-primary flex items-center justify-center">
-                               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
-                           </button>
-                       </div>
-                       <div id="assignment-list" class="space-y-3 flex-grow"></div>
+                         <div class="flex justify-between items-center mb-4">
+                             <h2 class="text-lg font-bold text-main">Assignments</h2>
+                             <button id="add-assignment-btn" class="w-8 h-8 rounded-lg btn-primary flex items-center justify-center">
+                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
+                             </button>
+                         </div>
+                         <div id="assignment-list" class="space-y-3 flex-grow"></div>
                  </div>
                  <!-- Mini Calendar Card -->
                 <div class="dashboard-card">
@@ -984,8 +1054,6 @@
         const leastStudiedRatingEl = document.getElementById('least-studied-rating');
         const leastStudiedPeriodSelect = document.getElementById('least-studied-period');
         const learningTimePeriodSelect = document.getElementById('learning-time-period');
-        const learningTimeChart = document.getElementById('learning-time-chart');
-        const learningTimeTotal = document.getElementById('learning-time-total');
         const learningTimeLegend = document.getElementById('learning-time-legend');
         const hoursActivityPeriodSelect = document.getElementById('hours-activity-period');
         const hoursActivityChartCanvas = document.getElementById('hours-activity-chart');
@@ -1029,8 +1097,13 @@
         let openSubTaskPanels = new Set();
         const subjectColors = ['#34d399', '#60a5fa', '#fbbf24', '#c084fc', '#f87171', '#fb923c', '#818cf8', '#a78bfa', '#f472b6', '#2dd4bf', '#a3e635', '#fde047', '#93c5fd'];
         let hoursActivityChart = null;
+        let learningTimeDonutChart = null;
         let miniCalDate = new Date();
         let heatmapDate = new Date(); 
+        let pinnedSubjects = JSON.parse(localStorage.getItem('pinnedSubjects')) || [];
+        let facultyData = JSON.parse(localStorage.getItem('facultyData')) || {};
+        let stackedBarChart = null;
+        const activityTypes = ['None', 'Lecture', 'Revision', 'Practice', 'Test'];
         
         // --- TIMER STATE ---
         let studySessionEndTime = null; // Will hold 'HH:MM' string
@@ -1045,6 +1118,8 @@
         const saveCourseData = () => localStorage.setItem('courseData', JSON.stringify(courseData));
         const saveAssignments = () => localStorage.setItem('assignments', JSON.stringify(assignments));
         const saveSessionEndTime = () => { if(studySessionEndTime) localStorage.setItem('studySessionEndTime', studySessionEndTime); else localStorage.removeItem('studySessionEndTime'); };
+        const savePinnedSubjects = () => localStorage.setItem('pinnedSubjects', JSON.stringify(pinnedSubjects));
+        const saveFacultyData = () => localStorage.setItem('facultyData', JSON.stringify(facultyData));
         
         const formatDateKey = (date) => {
             const year = date.getFullYear();
@@ -1376,7 +1451,10 @@
             if (!studyData[dateKey] || !Array.isArray(studyData[dateKey])) studyData[dateKey] = [];
             const daySubjects = studyData[dateKey];
             
-            daySubjects.forEach(s => { if (!s.subTasks) s.subTasks = []; });
+            daySubjects.forEach(s => { 
+                if (!s.subTasks) s.subTasks = []; 
+                if (!s.status) s.status = 'None';
+            });
 
             subjectsList.innerHTML = '';
             subjectsDoneList.innerHTML = '';
@@ -1419,6 +1497,19 @@
                 subjectLabel.textContent = subject;
                 subjectLabel.classList.add('subject-label', 'cursor-pointer', 'transition-colors');
                 subjectDetailsContainer.appendChild(subjectLabel);
+
+                const statusBtn = document.createElement('button');
+                const currentStatus = data.status || 'None';
+                statusBtn.textContent = currentStatus;
+                statusBtn.className = `status-btn ml-4 text-xs status-${currentStatus.toLowerCase().replace(' ', '-')}`;
+                statusBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const currentStatusIndex = activityTypes.indexOf(data.status || 'None');
+                    const nextStatusIndex = (currentStatusIndex + 1) % activityTypes.length;
+                    data.status = activityTypes[nextStatusIndex];
+                    saveStudyData();
+                    renderSubjects(); // Re-render to show new status
+                });
                 
                 let subTaskProgress = 0;
                 if (data.subTasks && data.subTasks.length > 0) {
@@ -1469,7 +1560,21 @@
                             else { subTaskLabel.textContent = task.text; }
                         });
                         subTaskLabel.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); subTaskLabel.blur(); }});
-                        
+
+                        const subTaskStatusBtn = document.createElement('button');
+                        const subTaskCurrentStatus = task.status || data.status;
+                        subTaskStatusBtn.textContent = subTaskCurrentStatus;
+                        subTaskStatusBtn.title = subTaskCurrentStatus;
+                        subTaskStatusBtn.className = `status-btn ml-2 text-xs status-${subTaskCurrentStatus.toLowerCase().replace(' ', '-')}`;
+                        subTaskStatusBtn.addEventListener('click', e => {
+                             e.stopPropagation();
+                             const currentStatusIndex = activityTypes.indexOf(task.status || data.status);
+                             const nextStatusIndex = (currentStatusIndex + 1) % activityTypes.length;
+                             task.status = activityTypes[nextStatusIndex];
+                             saveStudyData();
+                             renderSubjects();
+                        });
+
                         const timeDisplay = document.createElement('span');
                         timeDisplay.textContent = `(${formatMinutesToHoursAndMinutes(minutesPerTask)})`;
                         timeDisplay.classList.add('text-xs', 'text-subtle', 'ml-2', 'flex-shrink-0');
@@ -1484,7 +1589,7 @@
                             renderSubjects(); 
                         });
                         
-                        subTaskItem.append(subTaskCheckbox, subTaskLabel, timeDisplay, deleteBtn);
+                        subTaskItem.append(subTaskCheckbox, subTaskLabel, subTaskStatusBtn, timeDisplay, deleteBtn);
                         subTaskContainer.appendChild(subTaskItem);
                     });
 
@@ -1500,7 +1605,7 @@
                     addSubTaskInput.addEventListener('keydown', (e) => {
                         if (e.key === 'Enter' && addSubTaskInput.value.trim() !== '') {
                             e.preventDefault();
-                            data.subTasks.push({ text: addSubTaskInput.value.trim(), completed: false });
+                            data.subTasks.push({ text: addSubTaskInput.value.trim(), completed: false, status: data.status });
                             saveStudyData();
                             renderSubjects();
                         }
@@ -1526,7 +1631,7 @@
                 }
                 
                 renderSubTasks();
-                listItem.append(handle, checkbox, subjectDetailsContainer, circle, toggleArrow);
+                listItem.append(handle, checkbox, subjectDetailsContainer, statusBtn, circle, toggleArrow);
                 subjectEntryWrapper.append(listItem, subTaskContainer);
                 
                 if (data.completed) {
@@ -1552,16 +1657,13 @@
             const completedMinutes = calculateCompletedMinutesForDay(dateKey);
             const totalHours = totalMinutes / 60;
             const completedHours = completedMinutes / 60;
-            
-            // Call motivation message update
-            const remainingHours = totalHours - completedHours;
-            updateMotivationMessage(remainingHours);
 
             const overallProgress = totalHours > 0 ? (completedHours / totalHours) * 100 : 0;
             const summaryText = document.createElement('span');
             summaryText.textContent = `Hours: ${completedHours.toFixed(1)} / ${totalHours.toFixed(1)}`;
             const overallCircle = createProgressCircle(overallProgress, 14, 3, null);
             progressSummary.append(summaryText, overallCircle);
+            updateMotivationMessage(totalHours - completedHours);
         };
 
         // --- DRAG & DROP ---
@@ -1627,7 +1729,7 @@
             const shuffled = [...activeSubjectPool].sort(() => 0.5 - Math.random());
             const randomSubjects = shuffled.slice(0, num);
             const dateKey = formatDateKey(selectedDate);
-            studyData[dateKey] = randomSubjects.map(subject => ({ name: subject, hours: 1, completed: false, completionTime: null, subTasks: [] }));
+            studyData[dateKey] = randomSubjects.map(subject => ({ name: subject, hours: 1, completed: false, completionTime: null, subTasks: [], status: 'None' }));
             saveStudyData(); renderSubjects(); closeRandomizeModal();
         });
 
@@ -1739,7 +1841,7 @@
             subjectsChecklist.querySelectorAll('input:checked').forEach(checkbox => {
                 const subjectName = checkbox.value;
                 const existingData = currentDayData.find(s => s.name === subjectName);
-                newDayData.push(existingData || { name: subjectName, hours: 1, completed: false, completionTime: null, subTasks: [] });
+                newDayData.push(existingData || { name: subjectName, hours: 1, completed: false, completionTime: null, subTasks: [], status: 'None' });
             });
             studyData[dateKey] = newDayData;
             saveStudyData(); renderSubjects(); closeEditSubjectsModal();
@@ -1788,39 +1890,61 @@
         dDayModal.addEventListener('click', (e) => { if (e.target === dDayModal) closeDDayModal(); });
         confirmDDayBtn.addEventListener('click', () => { if (dDayInput.value) { targetDate = dDayInput.value; saveTargetDate(); updateDDayCounter(); } closeDDayModal(); });
 
-        // --- Session End Time Modal Listeners ---
         setEndTimeBtn.addEventListener('click', () => {
-            sessionEndTimeInput.value = studySessionEndTime || '';
+            sessionEndTimeInput.value = studySessionEndTime || '23:00';
             sessionEndTimeModal.classList.remove('hidden');
         });
+
         cancelEndTimeBtn.addEventListener('click', () => sessionEndTimeModal.classList.add('hidden'));
-        sessionEndTimeModal.addEventListener('click', (e) => { if (e.target === sessionEndTimeModal) sessionEndTimeModal.classList.add('hidden'); });
+
         confirmEndTimeBtn.addEventListener('click', () => {
-            if(sessionEndTimeInput.value) {
-                studySessionEndTime = sessionEndTimeInput.value;
-                saveSessionEndTime();
-                startOrUpdateCountdown();
-                sessionEndTimeModal.classList.add('hidden');
-            }
+            studySessionEndTime = sessionEndTimeInput.value;
+            saveSessionEndTime();
+            startOrUpdateCountdown();
+            sessionEndTimeModal.classList.add('hidden');
         });
 
 
         // --- DASHBOARD LOGIC ---
-        const calculatePeriodStats = (period) => {
+        const calculateStatsByMode = (period, mode) => {
             const stats = {};
+            activeSubjectPool.forEach(s => stats[s] = { count: 0, minutes: 0 });
             const dateKeys = getDateKeysForPeriod(period);
 
             dateKeys.forEach(dateKey => {
                 if (studyData[dateKey]) {
-                     studyData[dateKey].flat().forEach(subject => {
-                        if (subject.completed) {
-                            stats[subject.name] = (stats[subject.name] || 0) + subject.hours;
+                    studyData[dateKey].flat().forEach(subject => {
+                        if (!activeSubjectPool.includes(subject.name)) return;
+                        if (!subject.completed) return;
+                        
+                        const totalSubTasks = subject.subTasks.length;
+                        if (totalSubTasks > 0) {
+                            const minutesPerSubTask = (subject.hours * 60) / totalSubTasks;
+                            subject.subTasks.forEach(task => {
+                                if (task.completed) {
+                                    const status = task.status || subject.status;
+                                    if (mode === 'hours') {
+                                        stats[subject.name].minutes += minutesPerSubTask;
+                                    } else if (status === mode) {
+                                        stats[subject.name].count++;
+                                        stats[subject.name].minutes += minutesPerSubTask;
+                                    }
+                                }
+                            });
+                        } else { // No subtasks, count the parent subject
+                            const status = subject.status;
+                             if (mode === 'hours') {
+                                stats[subject.name].minutes += subject.hours * 60;
+                            } else if (status === mode) {
+                                stats[subject.name].count++;
+                                stats[subject.name].minutes += subject.hours * 60;
+                            }
                         }
                     });
                 }
             });
             return stats;
-        };
+        }
 
         const getDateKeysForPeriod = (period) => {
             const now = new Date();
@@ -1850,15 +1974,74 @@
             return dateKeysToInclude;
         }
 
-        const calculateTotalStudyStats = () => {
+        const renderFacultyInfo = (container, subjectName) => {
+            container.innerHTML = '';
+            if (!subjectName || subjectName === 'N/A') return;
+
+            const facultyName = facultyData[subjectName];
+
+            if (facultyName) {
+                container.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span>Faculty: <strong>${facultyName}</strong></span>
+                        <button class="edit-faculty-btn p-1 rounded-full hover:bg-tertiary" data-subject="${subjectName}">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L14.732 3.732z"></path></svg>
+                        </button>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `<button class="add-faculty-btn text-sm btn-secondary px-2 py-1 rounded-md" data-subject="${subjectName}">+ Add Faculty</button>`;
+            }
+
+            container.querySelector('.add-faculty-btn, .edit-faculty-btn')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const currentSubject = e.currentTarget.dataset.subject;
+                container.innerHTML = `
+                    <div class="flex items-center gap-1">
+                        <input type="text" class="faculty-input input-main text-sm p-1 rounded-md w-32" value="${facultyData[currentSubject] || ''}" placeholder="Faculty Name" data-subject="${currentSubject}">
+                        <button class="delete-faculty-btn p-1 rounded-full hover:bg-tertiary" data-subject="${currentSubject}">
+                             <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                `;
+                const input = container.querySelector('.faculty-input');
+                input.focus();
+                input.addEventListener('blur', () => {
+                    const newName = input.value.trim();
+                    if (newName) {
+                        facultyData[currentSubject] = newName;
+                    } else {
+                        delete facultyData[currentSubject];
+                    }
+                    saveFacultyData();
+                    updateMostLeastCards(); // Re-render to show updated state
+                });
+                input.addEventListener('keydown', (ev) => { if(ev.key === 'Enter') input.blur(); });
+
+                container.querySelector('.delete-faculty-btn').addEventListener('click', () => {
+                     delete facultyData[currentSubject];
+                     saveFacultyData();
+                     updateMostLeastCards();
+                });
+            });
+        };
+
+        const calculatePeriodStats = (period) => {
             const stats = {};
-            Object.values(studyData).flat().forEach(subject => {
-                if (subject.completed) {
-                    stats[subject.name] = (stats[subject.name] || 0) + subject.hours;
+            const dateKeys = getDateKeysForPeriod(period);
+
+            dateKeys.forEach(dateKey => {
+                if (studyData[dateKey]) {
+                     studyData[dateKey].flat().forEach(subject => {
+                        if (subject.completed) {
+                            stats[subject.name] = (stats[subject.name] || 0) + subject.hours;
+                        }
+                    });
                 }
             });
             return stats;
         };
+
 
         const renderStarRating = (container, subjectName) => {
             container.innerHTML = '';
@@ -1893,10 +2076,12 @@
                 mostStudiedSubjectEl.textContent = mostStudied;
                 mostStudiedHoursEl.textContent = `${mostStats[mostStudied]} hours`;
                 renderStarRating(mostStudiedRatingEl, mostStudied);
+                renderFacultyInfo(document.getElementById('most-studied-faculty-container'), mostStudied);
             } else {
                 mostStudiedSubjectEl.textContent = "N/A";
                 mostStudiedHoursEl.textContent = "No data";
                 mostStudiedRatingEl.innerHTML = '';
+                document.getElementById('most-studied-faculty-container').innerHTML = '';
             }
 
             const leastStudiedSubjects = Object.keys(leastStats).filter(s => leastStats[s] > 0);
@@ -1906,56 +2091,99 @@
                 leastStudiedSubjectEl.textContent = leastStudied;
                 leastStudiedHoursEl.textContent = `${leastStats[leastStudied]} hours`;
                 renderStarRating(leastStudiedRatingEl, leastStudied);
+                renderFacultyInfo(document.getElementById('least-studied-faculty-container'), leastStudied);
             } else {
                 leastStudiedSubjectEl.textContent = "N/A";
                 leastStudiedHoursEl.textContent = "No data";
                 leastStudiedRatingEl.innerHTML = '';
+                document.getElementById('least-studied-faculty-container').innerHTML = '';
             }
         };
         
-        const updateLearningTimeChart = () => {
+        const renderLearningTimeChart = () => {
             const period = learningTimePeriodSelect.value;
-            const stats = calculatePeriodStats(period);
-            const entries = Object.entries(stats);
-            const total = entries.reduce((sum, [, hours]) => sum + hours, 0);
+            const stats = calculateStatsByMode(period, 'hours');
+            
+            const entries = Object.entries(stats).filter(([, data]) => data.minutes > 0);
+            const totalMinutes = entries.reduce((sum, [, data]) => sum + data.minutes, 0);
 
-            learningTimeTotal.textContent = `${total}h`;
-            learningTimeChart.innerHTML = '';
             learningTimeLegend.innerHTML = '';
+
+            const chartContainer = document.getElementById('learning-time-chart-container');
+            let textEl = document.getElementById('learning-time-text');
+            if (textEl) {
+                textEl.remove();
+            }
+
+            if (learningTimeDonutChart) {
+                learningTimeDonutChart.destroy();
+            }
 
             if (entries.length === 0) {
                 learningTimeLegend.innerHTML = '<p class="text-sm text-subtle text-center">No completed subjects for this period.</p>';
+                 // Ensure canvas is present even if there's no data, to avoid errors on re-render.
+                if (!document.getElementById('learning-time-chart-canvas')) {
+                    chartContainer.innerHTML = `<canvas id="learning-time-chart-canvas"></canvas>`;
+                }
                 return;
             }
 
-            let cumulativePercent = 0;
-            entries.forEach(([subject, hours]) => {
-                const percent = (hours / total) * 100;
-                const color = getSubjectColor(subject);
-                
-                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-                circle.setAttribute('cx', '18'); circle.setAttribute('cy', '18'); circle.setAttribute('r', '15.9155');
-                circle.setAttribute('fill', 'transparent'); circle.setAttribute('stroke', color);
-                circle.setAttribute('stroke-width', '3.8');
-                circle.setAttribute('stroke-dasharray', `${percent} ${100 - percent}`);
-                circle.setAttribute('stroke-dashoffset', `-${cumulativePercent}`);
-                
-                const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
-                title.textContent = `${subject}: ${hours}h (${percent.toFixed(1)}%)`;
-                circle.appendChild(title);
+            // Ensure canvas exists before creating a chart
+            if (!document.getElementById('learning-time-chart-canvas')) {
+                chartContainer.innerHTML = `<canvas id="learning-time-chart-canvas"></canvas>`;
+            }
+            const learningTimeChartCanvas = document.getElementById('learning-time-chart-canvas');
 
-                learningTimeChart.appendChild(circle);
-                
-                cumulativePercent += percent;
 
+            const labels = entries.map(([name]) => name);
+            const data = entries.map(([, data]) => data.minutes);
+            const backgroundColors = labels.map(name => getSubjectColor(name));
+            
+            learningTimeDonutChart = new Chart(learningTimeChartCanvas, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: backgroundColors,
+                        borderWidth: 0,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    return `${label}: ${formatMinutesToHoursAndMinutes(value)}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Render custom legend and total time text
+            const newTextEl = document.createElement('div');
+            newTextEl.id = 'learning-time-text';
+            newTextEl.className = "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none";
+            newTextEl.innerHTML = `<span class="text-2xl font-bold text-main">${formatMinutesToHoursAndMinutes(totalMinutes)}</span>`;
+            chartContainer.appendChild(newTextEl);
+            
+            entries.forEach(([subject, data]) => {
                 const legendItem = document.createElement('div');
                 legendItem.classList.add('flex', 'items-center', 'justify-between', 'text-sm');
                 legendItem.innerHTML = `
                     <div class="flex items-center">
-                        <span class="w-3 h-3 rounded-full mr-2" style="background-color: ${color};"></span>
+                        <span class="w-3 h-3 rounded-full mr-2" style="background-color: ${getSubjectColor(subject)};"></span>
                         <span class="text-main">${subject}</span>
                     </div>
-                    <span class="font-bold text-subtle">${hours}h</span>`;
+                    <span class="font-bold text-subtle">${formatMinutesToHoursAndMinutes(data.minutes)}</span>`;
                 learningTimeLegend.appendChild(legendItem);
             });
         };
@@ -2017,8 +2245,8 @@
                     hoursActivityChangeEl.style.color = 'var(--accent-danger)';
                 }
             } else if (currentTotal > 0) {
-                 hoursActivityChangeEl.textContent = 'Great start!';
-                 hoursActivityChangeEl.style.color = 'var(--progress-circle-fg)';
+               hoursActivityChangeEl.textContent = 'Great start!';
+               hoursActivityChangeEl.style.color = 'var(--progress-circle-fg)';
             } else {
                 hoursActivityChangeEl.textContent = `No activity last ${period === 'weekly' ? 'week' : 'month'}`;
                 hoursActivityChangeEl.style.color = 'var(--text-secondary)';
@@ -2082,10 +2310,10 @@
                                 title: function(context) {
                                     const date = new Date(now);
                                     if (period === 'weekly') {
-                                        const dayOfWeek = now.getDay();
-                                        date.setDate(now.getDate() - dayOfWeek + context[0].dataIndex);
+                                         const dayOfWeek = now.getDay();
+                                         date.setDate(now.getDate() - dayOfWeek + context[0].dataIndex);
                                     } else {
-                                        date.setDate(context[0].dataIndex + 1);
+                                         date.setDate(context[0].dataIndex + 1);
                                     }
                                     return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
                                 },
@@ -2376,12 +2604,12 @@
 
                 if (minutes > 0) {
                     const intensity = minutes / maxMinutes;
-                    if (intensity > 0.83) cell.classList.add('heatmap-level-6');      // very dark
+                    if (intensity > 0.83) cell.classList.add('heatmap-level-6');     // very dark
                     else if (intensity > 0.66) cell.classList.add('heatmap-level-5'); // more dark
                     else if (intensity > 0.50) cell.classList.add('heatmap-level-4'); // dark
                     else if (intensity > 0.33) cell.classList.add('heatmap-level-3'); // light
                     else if (intensity > 0.16) cell.classList.add('heatmap-level-2'); // little light
-                    else cell.classList.add('heatmap-level-1');                       // very light
+                    else cell.classList.add('heatmap-level-1');                     // very light
                 }
                 
                 cell.innerHTML = `<div class="heatmap-tooltip">${date.toDateString()}<br>${formatMinutesToHoursAndMinutes(minutes)} studied</div>`;
@@ -2389,60 +2617,49 @@
             }
         };
 
-        const calculateAllSubjectMinutesByPeriod = (period) => {
-            const stats = {};
-            // Initialize all active subjects with 0 minutes
-            activeSubjectPool.forEach(subject => {
-                stats[subject] = 0;
-            });
-
-            const dateKeys = getDateKeysForPeriod(period);
-            dateKeys.forEach(dateKey => {
-                (studyData[dateKey] || []).forEach(subject => {
-                    // Only calculate for subjects in the active pool
-                    if (stats.hasOwnProperty(subject.name)) {
-                        const minutes = calculateCompletedMinutesForDay(dateKey, subject.name);
-                        if (minutes > 0) {
-                            stats[subject.name] += minutes;
-                        }
-                    }
-                });
-            });
-            return stats;
-        };
-
         const renderTopSubjects = (period) => {
             rankerList.innerHTML = '';
+            const rankerMode = document.getElementById('ranker-mode-select').value;
+
             document.querySelectorAll('#ranker-toggles .ranker-toggle-btn').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.period === period);
             });
 
-            const stats = calculateAllSubjectMinutesByPeriod(period);
+            const stats = calculateStatsByMode(period, rankerMode === 'hours' ? 'hours' : rankerMode);
+            
             const sortedSubjects = Object.entries(stats)
-                .filter(([, minutes]) => minutes > 0)
-                .sort(([, a], [, b]) => b - a);
+                .filter(([, data]) => (rankerMode === 'hours' ? data.minutes : data.count) > 0)
+                .sort(([, a], [, b]) => (rankerMode === 'hours' ? b.minutes - a.minutes : b.count - a.count));
 
             if(sortedSubjects.length === 0) {
-                rankerList.innerHTML = `<div class="empty-state-container h-24"><p class="text-sm text-subtle text-center">No subjects studied in this period.</p></div>`;
+                rankerList.innerHTML = `<div class="empty-state-container h-24"><p class="text-sm text-subtle text-center">No activity for this period.</p></div>`;
                 return;
             }
 
-            const maxMinutes = sortedSubjects.length > 0 ? sortedSubjects[0][1] : 0;
+            const maxValue = sortedSubjects.length > 0 ? (rankerMode === 'hours' ? sortedSubjects[0][1].minutes : sortedSubjects[0][1].count) : 0;
 
             const top7 = sortedSubjects.slice(0, 7);
             
-            top7.forEach(([name, minutes], index) => {
+            top7.forEach(([name, data], index) => {
                 const item = document.createElement('div');
                 item.classList.add('ranker-item', 'grid', 'grid-cols-12', 'gap-4', 'items-center');
                 
-                const widthPercent = maxMinutes > 0 ? (minutes / maxMinutes) * 100 : 0;
+                const currentValue = rankerMode === 'hours' ? data.minutes : data.count;
+                const widthPercent = maxValue > 0 ? (currentValue / maxValue) * 100 : 0;
+                
+                let displayValue;
+                if(rankerMode === 'hours') {
+                    displayValue = formatMinutesToHoursAndMinutes(data.minutes);
+                } else {
+                    displayValue = `${data.count} ${data.count !== 1 ? rankerMode + 's' : rankerMode} (${formatMinutesToHoursAndMinutes(data.minutes)})`;
+                }
                 
                 item.innerHTML = `
                     <span class="text-lg font-bold text-subtle text-center">${index + 1}</span>
                     <div class="col-span-11">
                         <div class="flex justify-between items-center mb-1">
                             <span class="font-semibold text-main">${name}</span>
-                            <span class="text-sm font-medium text-subtle">${formatMinutesToHoursAndMinutes(minutes)}</span>
+                            <span class="text-sm font-medium text-subtle">${displayValue}</span>
                         </div>
                         <div class="progress-bar-bg w-full h-1.5">
                             <div class="progress-bar" style="width: ${widthPercent}%;"></div>
@@ -2455,12 +2672,14 @@
         
         const renderLeastStudiedTable = (period) => {
             leastStudiedList.innerHTML = '';
+            const rankerMode = document.getElementById('least-studied-mode-select').value;
+
             document.querySelectorAll('#least-studied-toggles .ranker-toggle-btn').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.period === period);
             });
 
-            const stats = calculateAllSubjectMinutesByPeriod(period);
-            const sortedSubjects = Object.entries(stats).sort(([, a], [, b]) => b - a);
+            const stats = calculateStatsByMode(period, rankerMode);
+            const sortedSubjects = Object.entries(stats).sort(([, a], [, b]) => (rankerMode === 'hours' ? b.minutes - a.minutes : b.count - a.count));
 
             if (sortedSubjects.length === 0) {
                  leastStudiedList.innerHTML = `<tr><td colspan="3" class="text-center text-subtle py-4">No subjects to rank.</td></tr>`;
@@ -2470,12 +2689,20 @@
             const least = sortedSubjects.slice(7);
 
             if (least.length > 0) {
-                least.forEach(([name, minutes], index) => {
+                least.forEach(([name, data], index) => {
                     const row = document.createElement('tr');
+                    
+                    let displayValue;
+                     if(rankerMode === 'hours') {
+                         displayValue = formatMinutesToHoursAndMinutes(data.minutes);
+                    } else {
+                         displayValue = `${data.count} ${data.count !== 1 ? rankerMode + 's' : rankerMode} (${formatMinutesToHoursAndMinutes(data.minutes)})`;
+                    }
+
                     row.innerHTML = `
                         <td>${index + 8}</td>
                         <td class="font-medium text-main">${name}</td>
-                        <td class="text-subtle">${formatMinutesToHoursAndMinutes(minutes)}</td>
+                        <td class="text-subtle">${displayValue}</td>
                     `;
                     leastStudiedList.appendChild(row);
                 });
@@ -2490,6 +2717,11 @@
                 renderTopSubjects(period);
             }
         });
+
+        document.getElementById('ranker-mode-select').addEventListener('change', () => {
+            const activePeriod = document.querySelector('#ranker-toggles .ranker-toggle-btn.active').dataset.period;
+            renderTopSubjects(activePeriod);
+        });
         
         leastStudiedToggles.addEventListener('click', (e) => {
             if(e.target.matches('.ranker-toggle-btn')) {
@@ -2498,22 +2730,113 @@
             }
         });
 
+         document.getElementById('least-studied-mode-select').addEventListener('change', () => {
+            const activePeriod = document.querySelector('#least-studied-toggles .ranker-toggle-btn.active').dataset.period;
+            renderLeastStudiedTable(activePeriod);
+        });
+
+        const renderStackedBarGraph = () => {
+            const criteria1 = document.getElementById('stacked-bar-criteria1').value;
+            const criteria2 = document.getElementById('stacked-bar-criteria2').value;
+            const period = document.getElementById('stacked-bar-period').value;
+
+            const stats1 = calculateStatsByMode(period, criteria1);
+            const stats2 = calculateStatsByMode(period, criteria2);
+            
+            const allSubjects = [...new Set([...Object.keys(stats1), ...Object.keys(stats2)])]
+                .filter(s => (stats1[s]?.minutes || 0) > 0 || (stats2[s]?.minutes || 0) > 0);
+
+            const data1 = allSubjects.map(s => (stats1[s]?.minutes || 0) / 60); // Convert to hours
+            const data2 = allSubjects.map(s => (stats2[s]?.minutes || 0) / 60);
+
+            const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-primary');
+            const accentColorLighter = getComputedStyle(document.documentElement).getPropertyValue('--progress-circle-fg');
+
+
+            if(stackedBarChart) {
+                stackedBarChart.destroy();
+            }
+
+            stackedBarChart = new Chart(document.getElementById('stacked-bar-chart'), {
+                type: 'bar',
+                data: {
+                    labels: allSubjects,
+                    datasets: [
+                        {
+                            label: criteria1,
+                            data: data1,
+                            backgroundColor: accentColor,
+                            barPercentage: 0.5,
+                            categoryPercentage: 0.7
+                        },
+                        {
+                            label: criteria2,
+                            data: data2,
+                            backgroundColor: accentColorLighter,
+                             barPercentage: 0.5,
+                            categoryPercentage: 0.7
+                        }
+                    ]
+                },
+                options: {
+                    plugins: { 
+                        legend: { position: 'top' },
+                        tooltip: {
+                             callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    const value = context.parsed.y || 0;
+                                    label += formatMinutesToHoursAndMinutes(value * 60);
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { 
+                            stacked: true, 
+                            grid: { display: false }, 
+                            ticks: { 
+                                color: 'var(--text-secondary)',
+                                font: {
+                                    size: 10
+                                }
+                            } 
+                        },
+                        y: { 
+                            stacked: true, 
+                            grid: { color: 'var(--border-primary)' }, 
+                            ticks: { color: 'var(--text-secondary)' }, 
+                            title: {display: true, text: 'Hours', color: 'var(--text-secondary)'}
+                        }
+                    }
+                }
+            });
+        };
+
 
         const renderDashboard = () => {
             dashboardDateEl.textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
             updateMostLeastCards();
-            updateLearningTimeChart();
+            renderLearningTimeChart();
             renderHoursActivity();
             renderDailySchedule();
             renderMiniCalendar();
             renderCourseList();
             renderAssignments();
             renderHeatmap();
+            renderLectureTracker();
             renderTopSubjects('week');
             renderLeastStudiedTable('week');
+            renderStackedBarGraph();
         };
         
-        learningTimePeriodSelect.addEventListener('change', updateLearningTimeChart);
+        learningTimePeriodSelect.addEventListener('change', renderLearningTimeChart);
         hoursActivityPeriodSelect.addEventListener('change', renderHoursActivity);
         mostStudiedPeriodSelect.addEventListener('change', updateMostLeastCards);
         leastStudiedPeriodSelect.addEventListener('change', updateMostLeastCards);
@@ -2521,6 +2844,10 @@
         miniCalNextBtn.addEventListener('click', () => { miniCalDate.setMonth(miniCalDate.getMonth() + 1); renderMiniCalendar(); });
         heatmapPrevBtn.addEventListener('click', () => { heatmapDate.setMonth(heatmapDate.getMonth() - 1); renderHeatmap(); });
         heatmapNextBtn.addEventListener('click', () => { heatmapDate.setMonth(heatmapDate.getMonth() + 1); renderHeatmap(); });
+
+        document.getElementById('stacked-bar-criteria1').addEventListener('change', renderStackedBarGraph);
+        document.getElementById('stacked-bar-criteria2').addEventListener('change', renderStackedBarGraph);
+        document.getElementById('stacked-bar-period').addEventListener('change', renderStackedBarGraph);
 
         
         // --- BACKUP/IMPORT LOGIC ---
@@ -2538,7 +2865,9 @@
                     studyBaseTheme: localStorage.getItem('studyBaseTheme') || 'dark',
                     studyAccentColor: localStorage.getItem('studyAccentColor') || 'green',
                     doubtsDashboard: localStorage.getItem('doubtsDashboard') || '[]',
-                    studySessionEndTime: localStorage.getItem('studySessionEndTime') // Added for backup
+                    studySessionEndTime: localStorage.getItem('studySessionEndTime'), // Added for backup
+                    pinnedSubjects: localStorage.getItem('pinnedSubjects') || '[]',
+                    facultyData: localStorage.getItem('facultyData') || '{}'
                 };
 
                 const jsonString = JSON.stringify(dataToBackup, null, 2);
@@ -2975,6 +3304,90 @@
         /* --- DOUBT DASHBOARD LOGIC END --- */
         /*************************************/
 
+        // --- LECTURE TRACKER LOGIC ---
+        const renderLectureTracker = () => {
+            const container = document.getElementById('lecture-tracker-cards');
+            container.innerHTML = '';
+
+            if (pinnedSubjects.length === 0) {
+                container.innerHTML = `<p class="text-sm text-subtle">Pin subjects using the '+' button to track lectures.</p>`;
+            }
+
+            pinnedSubjects.forEach((subjectName, index) => {
+                const card = document.createElement('div');
+                card.className = 'bg-tertiary p-3 rounded-lg w-56 flex-shrink-0 space-y-3';
+                const courseInfo = courseData[subjectName] || { completed: 0, total: 0 };
+                
+                let optionsHtml = activeSubjectPool.map(s => `<option value="${s}" ${s === subjectName ? 'selected' : ''}>${s}</option>`).join('');
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                         <select class="lecture-subject-select dashboard-select text-sm w-full mr-2" data-index="${index}">
+                            ${optionsHtml}
+                         </select>
+                         <button class="unpin-subject-btn p-1.5 rounded-full hover:bg-main" title="Unpin Subject" data-index="${index}">&times;</button>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-3xl font-bold text-main">${courseInfo.completed} / ${courseInfo.total}</p>
+                        <p class="text-xs text-subtle font-semibold">LECTURES COMPLETED</p>
+                    </div>
+                    <div class="flex justify-center gap-3">
+                        <button class="lecture-btn minus-lecture-btn w-10 h-10 rounded-full btn-secondary flex items-center justify-center font-bold text-xl" data-subject="${subjectName}">-</button>
+                        <button class="lecture-btn plus-lecture-btn w-10 h-10 rounded-full btn-secondary flex items-center justify-center font-bold text-xl" data-subject="${subjectName}">+</button>
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+
+            // Add event listeners
+            container.querySelectorAll('.lecture-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const subject = e.currentTarget.dataset.subject;
+                    if (!courseData[subject]) return;
+
+                    if (e.currentTarget.classList.contains('plus-lecture-btn')) {
+                        if(courseData[subject].completed < courseData[subject].total) courseData[subject].completed++;
+                    } else {
+                        if(courseData[subject].completed > 0) courseData[subject].completed--;
+                    }
+                    saveCourseData();
+                    renderLectureTracker();
+                    renderCourseList();
+                });
+            });
+
+            container.querySelectorAll('.unpin-subject-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const index = parseInt(e.currentTarget.dataset.index, 10);
+                    pinnedSubjects.splice(index, 1);
+                    savePinnedSubjects();
+                    renderLectureTracker();
+                });
+            });
+
+            container.querySelectorAll('.lecture-subject-select').forEach(select => {
+                select.addEventListener('change', (e) => {
+                    const index = parseInt(e.currentTarget.dataset.index, 10);
+                    const newSubject = e.currentTarget.value;
+                    pinnedSubjects[index] = newSubject;
+                    savePinnedSubjects();
+                    renderLectureTracker();
+                });
+            });
+        };
+
+        document.getElementById('add-tracker-card-btn').addEventListener('click', () => {
+            const unpinnedSubjects = activeSubjectPool.filter(s => !pinnedSubjects.includes(s));
+            if (unpinnedSubjects.length > 0) {
+                pinnedSubjects.push(unpinnedSubjects[0]);
+                savePinnedSubjects();
+                renderLectureTracker();
+            } else {
+                alert("All available subjects are already pinned.");
+            }
+        });
+
         // --- INITIAL LOAD ---
         const init = () => {
             const savedTheme = localStorage.getItem('studyBaseTheme') || 'dark';
@@ -2986,11 +3399,27 @@
             syncCourseData();
             loadTargetDate();
             updateDDayCounter();
+            pinnedSubjects = JSON.parse(localStorage.getItem('pinnedSubjects')) || [];
+            facultyData = JSON.parse(localStorage.getItem('facultyData')) || {};
+
+            // --- Populate Stacked Bar Dropdowns ---
+            const criteriaDropdowns = [document.getElementById('stacked-bar-criteria1'), document.getElementById('stacked-bar-criteria2')];
+            const activityOptions = activityTypes.filter(t => t !== 'None'); // Exclude 'None' from comparison
+            criteriaDropdowns.forEach((dropdown, index) => {
+                activityOptions.forEach(type => {
+                    const option = document.createElement('option');
+                    option.value = type;
+                    option.textContent = type + 's';
+                    dropdown.appendChild(option);
+                });
+                dropdown.selectedIndex = index % activityOptions.length; // Default to different values
+            });
+
 
             // --- TIMER INIT ---
             studySessionEndTime = localStorage.getItem('studySessionEndTime');
             startOrUpdateCountdown();
-
+            
             renderCalendar();
             renderSubjects();
             initDoubtDashboard();
