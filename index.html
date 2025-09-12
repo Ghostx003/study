@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark" data-accent="green"> <!-- Default theme -->
-<head>
+<html lang="en" data-theme="dark" data-accent="green"> <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daily Study Calendar</title>
@@ -183,8 +182,8 @@
 
         #learning-time-chart-container {
             position: relative;
-            width: 150px;
-            height: 150px;
+            width: 180px;
+            height: 180px;
         }
         
         #mini-cal-grid-days .day.today {
@@ -426,7 +425,6 @@
 </head>
 <body class="text-gray-800 dark:text-gray-300">
 
-    <!-- Sidebar -->
     <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-0 hidden z-40 sidebar-overlay"></div>
     <div id="sidebar" class="fixed top-0 left-0 h-full w-64 bg-main shadow-lg z-50 sidebar p-4">
         <h2 class="text-xl font-bold mb-6 text-main">Menu</h2>
@@ -466,14 +464,17 @@
                     Import Data
                 </button>
             </li>
+             <li>
+                <button id="reset-data-btn" class="w-full text-left py-2 px-3 rounded-md hover:bg-tertiary font-semibold transition-colors" style="color: var(--accent-danger);">
+                    Reset All Data
+                </button>
+            </li>
         </ul>
     </div>
     
-    <!-- Main Calendar View -->
     <div id="calendar-view">
         <div class="flex items-start md:items-center justify-center min-h-screen p-4">
             <div class="w-full max-w-4xl bg-main rounded-2xl shadow-lg p-6 md:p-8">
-                <!-- Header -->
                 <div class="flex items-center justify-between mb-6">
                     <div class="flex items-center space-x-2 w-28 justify-start">
                          <button class="hamburger-menu-btn p-2 rounded-full hover:bg-tertiary transition-colors">
@@ -500,7 +501,6 @@
                     </div>
                 </div>
 
-                <!-- Session Timer -->
                 <div id="session-timer-container" class="text-center mb-6 p-4 rounded-lg list-item-bg border border-main">
                     <div class="flex items-center justify-center gap-4">
                         <h3 id="session-countdown-title" class="text-lg font-semibold text-subtle">Session Countdown</h3>
@@ -540,7 +540,6 @@
         </div>
     </div>
 
-    <!-- Main Dashboard View -->
     <div id="dashboard-view" class="p-4 md:p-8 hidden">
         <div class="flex justify-between items-center mb-6">
             <div class="flex items-center space-x-2">
@@ -552,14 +551,11 @@
             <div id="dashboard-date" class="text-lg font-semibold text-subtle"></div>
         </div>
 
-        <p class="text-xl text-subtle mb-8 -mt-4">Welcome back, Devi 👋</p>
+        <p id="welcome-message" class="text-xl text-subtle mb-8 -mt-4">Welcome back 👋</p>
         
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Main Content Column -->
             <div class="lg:col-span-2 space-y-6">
-                <!-- Row 1: Most/Least -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Most Studied Card -->
                     <div class="dashboard-card justify-between">
                          <div class="flex justify-between items-start mb-4">
                              <div>
@@ -580,7 +576,6 @@
                              <div id="most-studied-rating" class="star-rating flex space-x-1 text-2xl"></div>
                          </div>
                     </div>
-                    <!-- Least Studied Card -->
                     <div class="dashboard-card justify-between">
                         <div class="flex justify-between items-start mb-4">
                              <div>
@@ -603,20 +598,17 @@
                     </div>
                 </div>
 
-                <!-- Lecture Tracker -->
                 <div class="dashboard-card">
                     <h2 class="text-lg font-bold text-main mb-4">Lecture Tracker</h2>
                     <div class="flex items-center">
                         <div id="lecture-tracker-cards" class="flex-grow flex items-center gap-4 overflow-x-auto pb-3">
-                            <!-- Pinned subject cards will be injected here by JS -->
-                        </div>
+                            </div>
                         <button id="add-tracker-card-btn" title="Pin a new subject tracker" class="ml-4 w-10 h-10 rounded-lg btn-secondary flex-shrink-0 flex items-center justify-center transition-transform hover:scale-110">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
                         </button>
                     </div>
                 </div>
 
-                 <!-- Stacked Bar Graph -->
                  <div class="dashboard-card">
                     <div class="flex flex-wrap justify-between items-center gap-4 mb-4">
                         <h2 class="text-lg font-bold text-main">Activity Comparison</h2>
@@ -636,9 +628,7 @@
                     </div>
                 </div>
 
-                 <!-- Hours Activity & Daily Schedule -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- Hours Activity Card -->
+                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div class="dashboard-card">
                         <div class="flex justify-between items-center mb-4">
                             <div>
@@ -655,16 +645,13 @@
                         </div>
                         <div id="hours-activity-summary" class="text-xs text-subtle mt-2 text-center"></div>
                     </div>
-                     <!-- Daily Schedule Card -->
-                    <div class="dashboard-card">
+                     <div class="dashboard-card">
                         <h2 class="text-lg font-bold text-main mb-4">Daily Schedule</h2>
                         <div id="daily-schedule-list" class="space-y-1 max-h-64 overflow-y-auto flex-grow"></div>
                     </div>
                 </div>
                 
-                 <!-- Heatmap & Subject Ranker -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Heatmap Card -->
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="dashboard-card">
                         <div class="flex justify-between items-center mb-4">
                             <h2 class="text-lg font-bold text-main">Study Activity</h2>
@@ -686,8 +673,7 @@
                         </div>
                     </div>
                     <div class="space-y-6">
-                        <!-- Subject Ranker Card -->
-                       <div class="dashboard-card">
+                        <div class="dashboard-card">
                            <div class="flex flex-wrap justify-between items-center gap-y-2 mb-4">
                                <h2 class="text-lg font-bold text-main">Subject Rankings</h2>
                                <div class="flex items-center gap-2">
@@ -707,8 +693,7 @@
                            </div>
                            <div id="ranker-list" class="space-y-4"></div>
                        </div>
-                        <!-- Least Studied -->
-                         <div class="dashboard-card">
+                        <div class="dashboard-card">
                             <div class="flex flex-wrap justify-between items-center gap-y-2 mb-4">
                                <h2 class="text-lg font-bold text-main">Least Studied Subjects</h2>
                                <div class="flex items-center gap-2">
@@ -742,10 +727,8 @@
                 </div>
             </div>
 
-            <!-- Right Sidebar Column -->
             <div class="lg:col-span-1 space-y-6">
-                 <!-- Learning Time Card -->
-                <div class="dashboard-card">
+                 <div class="dashboard-card">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-lg font-bold text-main">Learning Time</h2>
                         <select id="learning-time-period" class="dashboard-select">
@@ -760,16 +743,13 @@
                     </div>
                     <div id="learning-time-legend" class="mt-4 space-y-2"></div>
                 </div>
-                <!-- Courses Card -->
                 <div class="dashboard-card">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-lg font-bold text-main">Course You're Taking</h2>
                     </div>
                     <div id="course-list" class="space-y-4 max-h-80 overflow-y-auto flex-grow">
-                        <!-- Course items will be generated here -->
-                    </div>
+                        </div>
                 </div>
-                 <!-- Assignments Card -->
                  <div class="dashboard-card">
                          <div class="flex justify-between items-center mb-4">
                              <h2 class="text-lg font-bold text-main">Assignments</h2>
@@ -779,8 +759,7 @@
                          </div>
                          <div id="assignment-list" class="space-y-3 flex-grow"></div>
                  </div>
-                 <!-- Mini Calendar Card -->
-                <div class="dashboard-card">
+                 <div class="dashboard-card">
                     <div class="flex justify-between items-center mb-3">
                         <button id="mini-cal-prev" class="p-1 rounded-full hover:bg-tertiary transition-colors">
                              <svg class="w-5 h-5 text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
@@ -799,9 +778,7 @@
         </div>
     </div>
 
-    <!-- Doubt Dashboard View -->
     <div id="doubt-dashboard-view" class="hidden">
-        <!-- DASHBOARD VIEW -->
         <div id="doubt-dashboard-main">
             <div class="max-w-7xl mx-auto p-4 md:p-8">
                 <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
@@ -820,8 +797,7 @@
                 </div>
 
                 <div id="doubt-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    <!-- Doubt cards will be injected here -->
-                </div>
+                    </div>
                 
                 <div id="doubt-empty-state" class="text-center py-20 hidden">
                     <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -837,7 +813,6 @@
             </button>
         </div>
 
-        <!-- EDITOR VIEW -->
         <div id="doubt-editor-view" class="hidden max-w-4xl mx-auto p-4 md:p-8">
             <div class="flex justify-between items-center mb-6">
                 <button id="back-to-doubt-dashboard-btn" class="btn-secondary font-semibold py-2 px-4 rounded-lg flex items-center space-x-2">
@@ -853,7 +828,6 @@
             <div class="bg-main p-6 md:p-8 rounded-2xl shadow-lg border border-main space-y-6">
                 <input type="text" id="doubt-title-editor" placeholder="Doubt Title..." class="text-3xl font-bold bg-transparent w-full focus:outline-none border-b-2 border-main pb-2">
                 
-                <!-- Rich Text Editor -->
                 <div>
                     <h3 class="text-lg font-semibold mb-2 text-subtle">Explanation</h3>
                     <div class="border border-main rounded-lg">
@@ -869,7 +843,6 @@
                     <p class="text-xs text-subtle mt-2">You can paste images directly into the editor.</p>
                 </div>
 
-                <!-- Voice Recording -->
                 <div>
                     <h3 class="text-lg font-semibold mb-2 text-subtle">Voice Note</h3>
                     <div class="p-4 border border-main rounded-lg bg-tertiary space-y-3">
@@ -890,7 +863,6 @@
             </div>
         </div>
         
-        <!-- MODAL for adding/editing doubt title and subject -->
         <div id="doubt-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4">
             <div class="bg-main rounded-2xl shadow-xl p-6 w-full max-w-md">
                 <h4 id="doubt-modal-title" class="text-xl font-bold mb-4 text-main">Add New Doubt</h4>
@@ -913,7 +885,6 @@
     </div>
 
 
-    <!-- MODALS -->
     <div id="assignment-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4">
         <div class="bg-main rounded-2xl shadow-xl p-6 w-full max-w-sm">
             <h4 id="assignment-modal-title" class="text-xl font-bold mb-4 text-main">Add Assignment</h4>
@@ -959,7 +930,6 @@
     <div id="edit-hours-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4"><div class="bg-main rounded-2xl shadow-xl p-6 w-full max-w-xs"><h4 class="text-xl font-bold mb-2 text-main">Set Hours for</h4><p id="edit-hours-subject-name" class="text-md mb-4 text-subtle"></p><input type="number" id="hours-input" min="1" class="w-full p-2 border rounded-lg mb-4 text-center text-lg input-main"><div class="flex justify-end space-x-3"><button id="cancel-edit-hours" class="px-5 py-2 btn-secondary rounded-lg transition-colors font-semibold">Cancel</button><button id="confirm-edit-hours" class="px-5 py-2 btn-primary rounded-lg transition-colors font-semibold">Save</button></div></div></div>
     <div id="randomize-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4"><div class="bg-main rounded-2xl shadow-xl p-6 w-full max-w-md"><h4 class="text-xl font-bold mb-5 text-main">How many subjects today?</h4><div id="subject-count-options" class="grid grid-cols-4 sm:grid-cols-5 gap-3 mb-6"></div><div class="flex justify-end space-x-3"><button id="cancel-randomize" class="px-5 py-2 btn-secondary rounded-lg transition-colors font-semibold">Cancel</button><button id="confirm-randomize" class="px-5 py-2 btn-primary rounded-lg transition-colors font-semibold">Generate</button></div></div></div>
 
-    <!-- Session End Time Modal -->
     <div id="session-end-time-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4">
         <div class="bg-main rounded-2xl shadow-xl p-6 w-full max-w-xs">
             <h4 class="text-xl font-bold mb-4 text-main">Session End Time</h4>
@@ -968,6 +938,21 @@
             <div class="flex justify-end space-x-3">
                 <button id="cancel-end-time" class="px-5 py-2 btn-secondary rounded-lg transition-colors font-semibold">Cancel</button>
                 <button id="confirm-end-time" class="px-5 py-2 btn-primary rounded-lg transition-colors font-semibold">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="name-modal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-main rounded-2xl shadow-xl p-6 w-full max-w-sm text-center">
+            <h4 class="text-2xl font-bold mb-2 text-main">Welcome!</h4>
+            <p class="text-subtle mb-4">Please enter your name to personalize your dashboard.</p>
+            <div class="space-y-4">
+                <div>
+                    <input type="text" id="name-input" placeholder="Your Name" class="w-full p-3 border rounded-lg input-main text-center text-lg">
+                </div>
+            </div>
+            <div class="flex justify-center mt-6">
+                <button id="confirm-name-btn" class="px-8 py-2 btn-primary rounded-lg transition-colors font-semibold">Save</button>
             </div>
         </div>
     </div>
@@ -1043,8 +1028,10 @@
         const headerDoubtBtn = document.getElementById('header-doubt-btn');
         const backupMenuBtn = document.getElementById('backup-menu-btn');
         const importMenuBtn = document.getElementById('import-menu-btn');
+        const resetDataBtn = document.getElementById('reset-data-btn'); // New selector
 
         // Dashboard Selectors
+        const welcomeMessageEl = document.getElementById('welcome-message'); // New selector
         const mostStudiedSubjectEl = document.getElementById('most-studied-subject');
         const mostStudiedHoursEl = document.getElementById('most-studied-hours');
         const mostStudiedRatingEl = document.getElementById('most-studied-rating');
@@ -1081,6 +1068,9 @@
         const rankerList = document.getElementById('ranker-list');
         const leastStudiedToggles = document.getElementById('least-studied-toggles');
         const leastStudiedList = document.getElementById('least-studied-list');
+        const nameModal = document.getElementById('name-modal'); // New selector
+        const nameInput = document.getElementById('name-input'); // New selector
+        const confirmNameBtn = document.getElementById('confirm-name-btn'); // New selector
 
 
         // --- STATE MANAGEMENT ---
@@ -1104,6 +1094,7 @@
         let facultyData = JSON.parse(localStorage.getItem('facultyData')) || {};
         let stackedBarChart = null;
         const activityTypes = ['None', 'Lecture', 'Revision', 'Practice', 'Test'];
+        let userName = null; // New state
         
         // --- TIMER STATE ---
         let studySessionEndTime = null; // Will hold 'HH:MM' string
@@ -2804,8 +2795,11 @@
                             ticks: { 
                                 color: 'var(--text-secondary)',
                                 font: {
-                                    size: 10
-                                }
+                                    size: 11
+                                },
+                                maxRotation: 45,
+                                minRotation: 45,
+                                autoSkip: false
                             } 
                         },
                         y: { 
@@ -2850,7 +2844,7 @@
         document.getElementById('stacked-bar-period').addEventListener('change', renderStackedBarGraph);
 
         
-        // --- BACKUP/IMPORT LOGIC ---
+        // --- BACKUP/IMPORT/RESET LOGIC ---
         const handleBackupData = () => {
             closeSidebar();
             try {
@@ -2867,7 +2861,8 @@
                     doubtsDashboard: localStorage.getItem('doubtsDashboard') || '[]',
                     studySessionEndTime: localStorage.getItem('studySessionEndTime'), // Added for backup
                     pinnedSubjects: localStorage.getItem('pinnedSubjects') || '[]',
-                    facultyData: localStorage.getItem('facultyData') || '{}'
+                    facultyData: localStorage.getItem('facultyData') || '{}',
+                    userName: localStorage.getItem('userName') // Added for backup
                 };
 
                 const jsonString = JSON.stringify(dataToBackup, null, 2);
@@ -2918,6 +2913,7 @@
 
                             // Set each item from the imported file
                             Object.keys(importedData).forEach(key => {
+                                // The value from the file is already a string
                                 if (importedData[key] !== null && importedData[key] !== undefined) {
                                     localStorage.setItem(key, importedData[key]);
                                 }
@@ -2935,6 +2931,27 @@
             };
             input.click();
         };
+
+        const handleResetData = () => {
+            closeSidebar();
+            if (confirm('Are you sure you want to reset ALL data? This action is irreversible and will delete everything, including subjects, study history, and settings.')) {
+                localStorage.clear();
+                location.reload();
+            }
+        };
+
+        const handleConfirmName = () => {
+            const name = nameInput.value.trim();
+            if (name) {
+                userName = name;
+                localStorage.setItem('userName', userName);
+                welcomeMessageEl.textContent = `Welcome back, ${userName} 👋`;
+                nameModal.classList.add('hidden');
+            } else {
+                alert('Please enter a name.');
+            }
+        };
+
 
         /***************************************/
         /* --- DOUBT DASHBOARD LOGIC START --- */
@@ -3425,6 +3442,18 @@
             initDoubtDashboard();
             backupMenuBtn.addEventListener('click', handleBackupData);
             importMenuBtn.addEventListener('click', handleImportData);
+            resetDataBtn.addEventListener('click', handleResetData); // New listener
+            confirmNameBtn.addEventListener('click', handleConfirmName); // New listener
+            nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') handleConfirmName(); }); // New listener
+
+            // User Name Logic
+            userName = localStorage.getItem('userName');
+            if (!userName) {
+                nameModal.classList.remove('hidden');
+                nameInput.focus();
+            } else {
+                welcomeMessageEl.textContent = `Welcome back, ${userName} 👋`;
+            }
         };
 
         init();
@@ -3432,4 +3461,3 @@
     </script>
 </body>
 </html>
-
