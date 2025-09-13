@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-accent="green">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Focus Timer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Replicating the core CSS from the original file */
+        :root {
+            --bg-primary: #f9fafb;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f3f4f6;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --text-on-accent: #ffffff;
+            --border-primary: #e5e7eb;
+            --border-secondary: #d1d5db;
+            --accent-danger: #ef4444;
+        }
+        html[data-theme="dark"] {
+            --bg-primary: #000000;
+            --bg-secondary: #121212;
+            --bg-tertiary: #1E1E1E;
+            --text-primary: #f5f5f5;
+            --text-secondary: #a3a3a3;
+            --border-primary: #27272a;
+            --border-secondary: #3f3f46;
+        }
+        html[data-accent="green"] {
+            --accent-primary: #16a34a; --accent-hover: #15803d;
+            --accent-dday: #16a34a; --progress-circle-fg: #22c55e;
+            --accent-heatmap: 34, 197, 94;
+        }
+        html[data-accent="blue"] {
+            --accent-primary: #2563eb; --accent-hover: #1d4ed8;
+            --accent-dday: #2563eb; --progress-circle-fg: #3b82f6;
+            --accent-heatmap: 59, 130, 246;
+        }
+        html[data-accent="red"] {
+            --accent-primary: #dc2626; --accent-hover: #b91c1c;
+            --accent-dday: #dc2626; --progress-circle-fg: #ef4444;
+            --accent-heatmap: 239, 68, 68;
+        }
+        html[data-accent="purple"] {
+            --accent-primary: #9333ea; --accent-hover: #7e22ce;
+            --accent-dday: #9333ea; --progress-circle-fg: #a855f7;
+            --accent-heatmap: 168, 85, 247;
+        }
+        html[data-accent="green"][data-theme="dark"] { --accent-primary_translucent: rgba(34, 197, 94, 0.4); }
+        html[data-accent="blue"][data-theme="dark"] { --accent-primary_translucent: rgba(59, 130, 246, 0.4); }
+        html[data-accent="red"][data-theme="dark"] { --accent-primary_translucent: rgba(239, 68, 68, 0.4); }
+        html[data-accent="purple"][data-theme="dark"] { --accent-primary_translucent: rgba(168, 85, 247, 0.4); }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.2s, color 0.2s;
+            min-height: 100vh;
+            padding-top: 64px; /* Height of nav bar */
+        }
+        .bg-main { background-color: var(--bg-secondary); }
+        .text-main { color: var(--text-primary); }
+        .text-subtle { color: var(--text-secondary); }
+        .btn-primary { background-color: var(--accent-primary); color: var(--text-on-accent); }
+        .btn-secondary { background-color: var(--bg-tertiary); color: var(--text-primary); }
+        .input-main { background-color: var(--bg-tertiary); border-color: var(--border-secondary); color: var(--text-primary); }
+        .custom-checkbox { border: 2px solid var(--border-secondary); }
+        .custom-checkbox.completed { background-color: var(--accent-primary); border-color: var(--accent-primary); }
+        .custom-checkbox.completed::after {
+            content: '✓'; color: white; display: flex; align-items: center; justify-content: center;
+            font-size: 1rem; line-height: 1rem; font-weight: bold;
+        }
+        .subject-label.completed { text-decoration: line-through; color: var(--text-secondary); }
+        .list-item-bg { background-color: var(--bg-tertiary); }
+        .nav-bar {
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-primary);
+            box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1);
+        }
+        .nav-link {
+            color: var(--text-primary);
+            font-weight: 600;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.5rem;
+        }
+        .nav-link:hover {
+            background-color: var(--bg-tertiary);
+            color: var(--accent-primary);
+        }
+
+        /* Status badges */
+        .status-btn {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            line-height: 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .status-none { background-color: #e5e7eb33; color: #9ca3af; } /* Gray */
+        .status-upcoming { background-color: #3b82f633; color: #60a5fa; } /* Blue */
+        .status-in-progress { background-color: #f59e0b33; color: #fbbf24; } /* Amber */
+        .status-completed { background-color: #16a34a33; color: #4ade80; } /* Green */
+        .status-lecture { background-color: #60a5fa33; color: #60a5fa; } /* Blue */
+        .status-revision { background-color: #c084fc33; color: #c084fc; } /* Purple */
+        .status-practice { background-color: #fb923c33; color: #fb923c; } /* Orange */
+        .status-test { background-color: #f8717133; color: #f87171; } /* Red */
+        
+        .timer-display {
+            font-size: 4rem;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 1rem;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -2px;
+            color: var(--accent-primary);
+            text-shadow: 0 0 10px var(--accent-primary_translucent, rgba(22, 163, 74, 0.4));
+        }
+        .control-btn {
+            padding: 0.5rem 1.5rem;
+            border-radius: 9999px;
+            font-weight: 600;
+        }
+        .session-control-btn {
+            background-color: var(--bg-tertiary);
+            color: var(--text-primary);
+            width: 2rem;
+            height: 2rem;
+            border-radius: 9999px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: 1px solid var(--border-secondary);
+        }
+        .session-control-btn:hover {
+             background-color: var(--border-primary);
+        }
+        
+        /* CALENDAR STYLES */
+        .calendar-day-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.5rem; }
+        .calendar-day, .calendar-weekday { display: flex; justify-content: center; align-items: center; text-align: center; }
+        .calendar-day { height: 2.5rem; width: 2.5rem; border-radius: 9999px; font-weight: 500; cursor: default; position: relative; }
+        .calendar-day.other-month { color: var(--text-secondary); opacity: 0.5; }
+        .calendar-day.today { background-color: var(--bg-tertiary); font-weight: 700; }
+        .calendar-day.has-data { background-color: var(--accent-primary_translucent); border: 1px solid var(--accent-primary); cursor: pointer; }
+        #tooltip { position: absolute; z-index: 50; padding: 0.5rem 0.75rem; background-color: var(--bg-tertiary); color: var(--text-primary); border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); font-size: 0.875rem; font-weight: 600; pointer-events: none; }
+    </style>
+</head>
+<body class="text-gray-800 dark:text-gray-300">
+
+    <nav class="nav-bar fixed top-0 w-full z-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <a href="#" onclick="window.location.reload()" class="flex-shrink-0 text-2xl font-bold">
+                        Focus Timer
+                    </a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="./index.html" class="nav-link">
+                        Study Planner
+                    </a>
+                    <a href="./index.html#dashboard" class="nav-link">
+                        Dashboard
+                    </a>
+                    <a href="./index.html#doubts" class="nav-link">
+                        Doubt Manager
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <main class="w-full max-w-7xl mx-auto flex flex-col md:flex-row items-start justify-end p-4 gap-8">
+        <div class="w-full max-w-xl">
+            <div class="bg-main shadow-lg rounded-xl p-8 text-center">
+                <h2 id="current-date" class="text-lg text-subtle font-semibold mb-2"></h2>
+                
+                <div class="timer-display" id="timer-display">00:00</div>
+                
+                <div class="flex justify-center items-center space-x-4">
+                    <button id="start-pause-btn" class="control-btn btn-primary">Start</button>
+                    <button id="reset-btn" class="control-btn btn-secondary">Reset</button>
+                </div>
+                
+                <div class="flex justify-center items-center mt-4">
+                    <span class="text-md text-subtle font-medium mr-2">Set Timer:</span>
+                    <input type="number" id="minutes-input" class="input-main w-20 px-2 py-1 rounded-lg text-center text-sm" value="60" min="1">
+                    <span class="text-subtle ml-1">minutes</span>
+                </div>
+
+                <div class="flex justify-center items-center space-x-2 mt-2">
+                    <button class="preset-btn btn-secondary text-sm px-3 py-1 rounded-md" data-minutes="25">25min</button>
+                    <button class="preset-btn btn-secondary text-sm px-3 py-1 rounded-md" data-minutes="60">60min</button>
+                    <button class="preset-btn btn-secondary text-sm px-3 py-1 rounded-md" data-minutes="90">90min</button>
+                    <button class="preset-btn btn-secondary text-sm px-3 py-1 rounded-md" data-minutes="120">120min</button>
+                </div>
+                
+                <div class="flex justify-center items-center mt-6 space-x-4">
+                    <div class="flex items-center bg-tertiary rounded-lg p-2 space-x-2">
+                        <button id="decrease-session-btn" class="session-control-btn">-</button>
+                        <div class="flex items-center">
+                            <span class="text-subtle text-sm font-semibold mr-2">Session:</span>
+                            <span id="session-counter" class="text-main font-bold text-lg">0</span>
+                        </div>
+                        <button id="increase-session-btn" class="session-control-btn">+</button>
+                    </div>
+                     <input type="text" id="subject-input" placeholder="Subject Name" class="input-main px-4 py-2 rounded-lg text-center text-sm w-48 font-bold" style="background-color: black; color: white;">
+                </div>
+                
+                <div id="session-countdown-container" class="mt-4 p-4 rounded-lg list-item-bg border border-main">
+                    <h3 id="session-countdown-title" class="text-lg font-semibold text-subtle">Session Countdown</h3>
+                    <div id="session-countdown" class="text-4xl font-bold my-2" style="color: var(--accent-primary); font-variant-numeric: tabular-nums;">--:--:--</div>
+                    <p id="session-motivation" class="text-md text-subtle font-medium">Set an end time in the Study Planner.</p>
+                </div>
+                
+                <div id="tasks-container" class="mt-2 text-left">
+                    <h3 class="border-b border-border-primary pb-2 text-main text-lg font-semibold">Today's Study Tasks</h3>
+                    <div id="pending-tasks-list" class="space-y-3 mt-4">
+                        <p class="text-subtle text-sm">Waiting for tasks from the Study Planner...</p>
+                    </div>
+                    
+                    <div id="completed-tasks-container" class="space-y-3 mt-8 hidden">
+                        <h4 class="text-lg font-bold text-main border-b border-border-primary pb-2">Finished Tasks</h4>
+                        <div id="completed-tasks-list" class="space-y-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="calendar-wrapper" class="w-full max-w-sm mx-auto md:mx-0 md:sticky md:top-24">
+            <div id="calendar-container" class="bg-main shadow-lg rounded-xl p-4">
+                <div id="calendar-header" class="flex items-center justify-between mb-4">
+                    <button id="prev-month-btn" class="session-control-btn text-lg">‹</button>
+                    <h3 id="month-year" class="text-lg font-semibold text-main"></h3>
+                    <button id="next-month-btn" class="session-control-btn text-lg">›</button>
+                </div>
+                <div class="calendar-day-grid mb-2">
+                    <div class="calendar-weekday text-subtle text-sm">Su</div>
+                    <div class="calendar-weekday text-subtle text-sm">Mo</div>
+                    <div class="calendar-weekday text-subtle text-sm">Tu</div>
+                    <div class="calendar-weekday text-subtle text-sm">We</div>
+                    <div class="calendar-weekday text-subtle text-sm">Th</div>
+                    <div class="calendar-weekday text-subtle text-sm">Fr</div>
+                    <div class="calendar-weekday text-subtle text-sm">Sa</div>
+                </div>
+                <div id="calendar-grid" class="calendar-day-grid"></div>
+            </div>
+        </div>
+    </main>
+
+    <div id="tooltip" class="hidden"></div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const timerDisplay = document.getElementById('timer-display');
+        const startPauseBtn = document.getElementById('start-pause-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const minutesInput = document.getElementById('minutes-input');
+        const currentDateEl = document.getElementById('current-date');
+        const pendingTasksList = document.getElementById('pending-tasks-list');
+        const completedTasksList = document.getElementById('completed-tasks-list');
+        const completedTasksContainer = document.getElementById('completed-tasks-container');
+        const sessionCounterEl = document.getElementById('session-counter');
+        const subjectInput = document.getElementById('subject-input');
+        const sessionCountdownEl = document.getElementById('session-countdown');
+        const sessionCountdownTitle = document.getElementById('session-countdown-title');
+        const sessionMotivationEl = document.getElementById('session-motivation');
+        const increaseSessionBtn = document.getElementById('increase-session-btn');
+        const decreaseSessionBtn = document.getElementById('decrease-session-btn');
+        
+        let timerInterval = null;
+        let timeRemaining = parseInt(minutesInput.value, 10) * 60;
+        let isPaused = true;
+        let currentTasks = [];
+        let sessionCount = 0;
+        let sessionCountdownInterval = null;
+
+        const SESSION_COUNT_KEY = 'focusTimerSessionCount';
+        const TIMER_STATE_KEY = 'timerState';
+
+        const formatDateKey = (date) => {
+            const year = date.getFullYear();
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const day = date.getDate().toString().padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
+        const formatMinutesToHoursAndMinutes = (totalMinutes) => {
+            if (isNaN(totalMinutes) || totalMinutes <= 0) return '0m';
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = Math.round(totalMinutes % 60);
+            if (hours > 0 && minutes > 0) {
+                return `${hours}h ${minutes}m`;
+            } else if (hours > 0) {
+                return `${hours}h`;
+            } else {
+                return `${minutes}m`;
+            }
+        };
+        
+        const formatTime = (seconds) => {
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        };
+
+        const updateTimerDisplay = () => {
+            if (!isPaused) {
+                timeRemaining--;
+            }
+            timerDisplay.textContent = formatTime(timeRemaining);
+            document.title = formatTime(timeRemaining) + ' - Focus Timer';
+
+            if (timeRemaining <= 0 && !isPaused) {
+                clearInterval(timerInterval);
+                isPaused = true;
+                startPauseBtn.textContent = 'Start';
+                document.title = 'Focus Timer';
+                
+                sessionCount++;
+                sessionCounterEl.textContent = sessionCount;
+                localStorage.setItem(SESSION_COUNT_KEY, sessionCount);
+                
+                localStorage.setItem(TIMER_STATE_KEY, JSON.stringify({ timeRemaining: 0, isPaused: true, subject: subjectInput.value }));
+
+                alert("Time's up! Great work.");
+            }
+        };
+
+        const startTimer = () => {
+            if (timeRemaining <= 0) {
+                 timeRemaining = parseInt(minutesInput.value, 10) * 60;
+            }
+            isPaused = false;
+            startPauseBtn.textContent = 'Pause';
+            localStorage.setItem(TIMER_STATE_KEY, JSON.stringify({ timeRemaining, isPaused, subject: subjectInput.value }));
+            clearInterval(timerInterval);
+            timerInterval = setInterval(updateTimerDisplay, 1000);
+        };
+
+        const pauseTimer = () => {
+            isPaused = true;
+            startPauseBtn.textContent = 'Resume';
+            localStorage.setItem(TIMER_STATE_KEY, JSON.stringify({ timeRemaining, isPaused, subject: subjectInput.value }));
+            clearInterval(timerInterval);
+        };
+
+        const resetTimer = () => {
+            clearInterval(timerInterval);
+            isPaused = true;
+            startPauseBtn.textContent = 'Start';
+            minutesInput.value = '60';
+            timeRemaining = parseInt(minutesInput.value, 10) * 60;
+            
+            subjectInput.value = '';
+            localStorage.removeItem(TIMER_STATE_KEY);
+            updateTimerDisplay();
+        };
+
+        const loadTimerState = () => {
+            sessionCount = parseInt(localStorage.getItem(SESSION_COUNT_KEY)) || 0;
+            sessionCounterEl.textContent = sessionCount;
+
+            const savedState = JSON.parse(localStorage.getItem(TIMER_STATE_KEY));
+            if (savedState) {
+                timeRemaining = typeof savedState.timeRemaining === 'number' 
+                    ? savedState.timeRemaining 
+                    : parseInt(minutesInput.value, 10) * 60;
+                    
+                isPaused = savedState.isPaused;
+                subjectInput.value = savedState.subject || '';
+                
+                if (!isPaused) {
+                    startTimer();
+                } else {
+                    if (timeRemaining > 0) {
+                        startPauseBtn.textContent = 'Resume';
+                    } else {
+                        startPauseBtn.textContent = 'Start';
+                        timeRemaining = parseInt(minutesInput.value, 10) * 60;
+                    }
+                    updateTimerDisplay();
+                }
+            } else {
+                timeRemaining = parseInt(minutesInput.value, 10) * 60;
+                updateTimerDisplay();
+            }
+        };
+        
+        const setPreset = (minutes) => {
+            if (!isPaused && timeRemaining > 0) {
+                const confirmed = confirm(`Are you sure you want to change the timer? The current session will be reset.`);
+                if (!confirmed) return;
+            }
+            clearInterval(timerInterval);
+            minutesInput.value = minutes;
+            timeRemaining = minutes * 60;
+            isPaused = true;
+            startPauseBtn.textContent = 'Start';
+            localStorage.setItem(TIMER_STATE_KEY, JSON.stringify({
+                timeRemaining,
+                isPaused: true,
+                subject: subjectInput.value
+            }));
+            updateTimerDisplay();
+        };
+
+        const updateSessionCountdown = () => {
+            const sessionEndTime = localStorage.getItem('studySessionEndTime');
+            if (!sessionEndTime) {
+                sessionCountdownEl.textContent = '--:--:--';
+                sessionMotivationEl.textContent = 'Set an end time in the Study Planner.';
+                sessionCountdownTitle.textContent = 'Session Countdown';
+                return;
+            }
+            
+            const displayTime = new Date(`1970-01-01T${sessionEndTime}`).toLocaleTimeString([], {hour: 'numeric', minute:'2-digit', hour12: true});
+            sessionCountdownTitle.textContent = `Session Ends at ${displayTime}`;
+
+            const now = new Date();
+            const end = new Date(now);
+            const [endHours, endMinutes] = sessionEndTime.split(':');
+            end.setHours(parseInt(endHours, 10), parseInt(endMinutes, 10), 0, 0);
+
+            const diffMs = end.getTime() - now.getTime();
+
+            if (diffMs <= 0) {
+                sessionCountdownEl.textContent = '00:00:00';
+                sessionMotivationEl.textContent = "Great work! The session has ended.";
+                if (sessionCountdownInterval) clearInterval(sessionCountdownInterval);
+                return;
+            }
+
+            const hours = Math.floor(diffMs / (1000 * 60 * 60)).toString().padStart(2, '0');
+            const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
+            const seconds = Math.floor((diffMs % (1000 * 60)) / 1000).toString().padStart(2, '0');
+
+            sessionCountdownEl.textContent = `${hours}:${minutes}:${seconds}`;
+
+            const dateKey = formatDateKey(new Date());
+            const studyData = JSON.parse(localStorage.getItem('studyData')) || {};
+            const daySubjects = studyData[dateKey] || [];
+            
+            let totalMinutes = 0;
+            let completedMinutes = 0;
+            
+            daySubjects.forEach(subject => {
+                const subjectTotalMinutes = subject.hours * 60;
+                totalMinutes += subjectTotalMinutes;
+                if (subject.completed) {
+                    completedMinutes += subjectTotalMinutes;
+                } else if (subject.subTasks && subject.subTasks.length > 0) {
+                    const completedSubTasks = subject.subTasks.filter(t => t.completed).length;
+                    if (completedSubTasks > 0) {
+                        const minutesPerSubTask = subjectTotalMinutes / subject.subTasks.length;
+                        completedMinutes += completedSubTasks * minutesPerSubTask;
+                    }
+                }
+            });
+
+            const remainingHours = (totalMinutes - completedMinutes) / 60;
+            const sessionHoursLeft = diffMs / (1000 * 60 * 60);
+
+            let message = '';
+            if (remainingHours > 0) {
+                const remainingMinutes = remainingHours * 60;
+                message = `You have <strong>${formatMinutesToHoursAndMinutes(remainingMinutes)}</strong> of tasks left.`;
+                message += ` Session ends in <strong>${formatMinutesToHoursAndMinutes(sessionHoursLeft * 60)}</strong>.`;
+                if (remainingHours > sessionHoursLeft) {
+                    message += ` <span style="color: var(--accent-danger);">Time to focus!</span>`;
+                } else {
+                     message += ` You're on track!`;
+                }
+            } else {
+                message = "All tasks completed for today! 🎉";
+            }
+            sessionMotivationEl.innerHTML = message;
+        };
+
+        const startSessionCountdown = () => {
+            if (sessionCountdownInterval) clearInterval(sessionCountdownInterval);
+            updateSessionCountdown();
+            sessionCountdownInterval = setInterval(updateSessionCountdown, 1000);
+        };
+
+        const renderTasks = () => {
+            pendingTasksList.innerHTML = '';
+            completedTasksList.innerHTML = '';
+            
+            const pending = currentTasks.filter(task => !task.completed);
+            const completed = currentTasks.filter(task => task.completed);
+            
+            if (pending.length === 0 && completed.length === 0) {
+                 pendingTasksList.innerHTML = `<p class="text-subtle text-sm">No tasks scheduled for today. Add some from the Study Planner!</p>`;
+            } else if (pending.length === 0) {
+                pendingTasksList.innerHTML = `<p class="text-subtle text-sm">All tasks are completed for today! 🎉</p>`;
+            } else {
+                pending.forEach(task => {
+                    pendingTasksList.innerHTML += `
+                        <div class="flex items-center p-3 rounded-lg hover:bg-tertiary transition-colors cursor-pointer list-item-bg" data-subject="${task.name}" data-completed="false">
+                            <div class="custom-checkbox w-5 h-5 rounded cursor-pointer mr-4"></div>
+                            <span class="subject-label text-main text-lg">${task.name}</span>
+                            <div class="ml-auto flex items-center space-x-2">
+                                <span class="status-btn status-${task.status.toLowerCase()}">${task.status}</span>
+                                <span class="text-sm text-subtle w-10 text-right">${task.hours}h</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            if (completed.length > 0) {
+                completedTasksContainer.classList.remove('hidden');
+                completed.forEach(task => {
+                    completedTasksList.innerHTML += `
+                        <div class="flex items-center p-3 rounded-lg list-item-bg opacity-70" data-subject="${task.name}" data-completed="true">
+                            <div class="custom-checkbox w-5 h-5 rounded cursor-pointer mr-4 completed"></div>
+                            <span class="subject-label text-main text-lg completed">${task.name}</span>
+                            <div class="ml-auto flex items-center space-x-2">
+                                <span class="status-btn status-${task.status.toLowerCase()}">${task.status}</span>
+                                <span class="text-sm text-subtle w-10 text-right">${task.hours}h</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                completedTasksContainer.classList.add('hidden');
+            }
+        };
+        
+        // --- CALENDAR LOGIC ---
+        const calendarGrid = document.getElementById('calendar-grid');
+        const monthYearEl = document.getElementById('month-year');
+        const prevMonthBtn = document.getElementById('prev-month-btn');
+        const nextMonthBtn = document.getElementById('next-month-btn');
+        const tooltip = document.getElementById('tooltip');
+        let currentDate = new Date();
+
+        const renderCalendar = () => {
+            calendarGrid.innerHTML = '';
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+
+            monthYearEl.textContent = `${currentDate.toLocaleString('default', { month: 'long' })} ${year}`;
+            
+            const firstDayOfMonth = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const studyData = JSON.parse(localStorage.getItem('studyData')) || {};
+
+            for (let i = 0; i < firstDayOfMonth; i++) {
+                calendarGrid.innerHTML += `<div class="calendar-day other-month"></div>`;
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayEl = document.createElement('div');
+                dayEl.textContent = day;
+                dayEl.classList.add('calendar-day');
+
+                const today = new Date();
+                if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+                    dayEl.classList.add('today');
+                }
+                
+                const dateKey = formatDateKey(new Date(year, month, day));
+                const dayTasks = studyData[dateKey] || [];
+                const completedHours = dayTasks.reduce((sum, task) => {
+                    return task.completed ? sum + parseFloat(task.hours) : sum;
+                }, 0);
+
+                if (completedHours > 0) {
+                    dayEl.classList.add('has-data');
+                    dayEl.dataset.tooltip = `${completedHours.toFixed(1)}h studied`;
+                }
+
+                calendarGrid.appendChild(dayEl);
+            }
+        };
+        
+        prevMonthBtn.addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar();
+        });
+
+        nextMonthBtn.addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar();
+        });
+
+        calendarGrid.addEventListener('mouseover', e => {
+            if (e.target.classList.contains('has-data')) {
+                tooltip.textContent = e.target.dataset.tooltip;
+                tooltip.classList.remove('hidden');
+                const rect = e.target.getBoundingClientRect();
+                tooltip.style.left = `${rect.left + window.scrollX + rect.width / 2 - tooltip.offsetWidth / 2}px`;
+                tooltip.style.top = `${rect.top + window.scrollY - tooltip.offsetHeight - 5}px`;
+            }
+        });
+
+        calendarGrid.addEventListener('mouseout', () => {
+            tooltip.classList.add('hidden');
+        });
+
+        const syncTasksFromMainApp = () => {
+            const todayKey = formatDateKey(new Date());
+            const studyData = JSON.parse(localStorage.getItem('studyData')) || {};
+            currentTasks = studyData[todayKey] || [];
+            renderTasks();
+            renderCalendar(); // Re-render calendar to reflect new data
+            startSessionCountdown();
+        };
+
+        const toggleTaskCompletion = (subjectName) => {
+            const todayKey = formatDateKey(new Date());
+            const studyData = JSON.parse(localStorage.getItem('studyData')) || {};
+            const subject = studyData[todayKey]?.find(s => s.name === subjectName);
+            if (subject) {
+                subject.completed = !subject.completed;
+                if (subject.completed) {
+                    subject.completionTime = new Date().toISOString();
+                } else {
+                    subject.completionTime = null;
+                }
+                localStorage.setItem('studyData', JSON.stringify(studyData));
+                syncTasksFromMainApp();
+            }
+        };
+
+        // Event Listeners
+        startPauseBtn.addEventListener('click', () => {
+            if (isPaused) {
+                startTimer();
+            } else {
+                pauseTimer();
+            }
+        });
+        resetBtn.addEventListener('click', resetTimer);
+        
+        increaseSessionBtn.addEventListener('click', () => {
+            sessionCount++;
+            sessionCounterEl.textContent = sessionCount;
+            localStorage.setItem(SESSION_COUNT_KEY, sessionCount);
+        });
+        
+        decreaseSessionBtn.addEventListener('click', () => {
+            if (sessionCount > 0) {
+                sessionCount--;
+                sessionCounterEl.textContent = sessionCount;
+                localStorage.setItem(SESSION_COUNT_KEY, sessionCount);
+            }
+        });
+
+        minutesInput.addEventListener('change', () => {
+            if(isPaused) {
+                const minutes = parseInt(minutesInput.value, 10);
+                if (!isNaN(minutes) && minutes > 0) {
+                    timeRemaining = minutes * 60;
+                    updateTimerDisplay();
+                    localStorage.setItem(TIMER_STATE_KEY, JSON.stringify({ 
+                        timeRemaining, 
+                        isPaused: true,
+                        subject: subjectInput.value
+                    }));
+                }
+            }
+        });
+        
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', () => setPreset(btn.dataset.minutes));
+        });
+
+        document.body.addEventListener('click', (e) => {
+            const item = e.target.closest('[data-subject]');
+            if (item && (e.target.classList.contains('custom-checkbox') || e.target.classList.contains('subject-label'))) {
+                const subjectName = item.dataset.subject;
+                toggleTaskCompletion(subjectName);
+            }
+        });
+
+        // Initial setup
+        currentDateEl.textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+        syncTasksFromMainApp();
+        loadTimerState();
+
+        window.addEventListener('storage', (event) => {
+            if (event.key === 'studyData' || event.key === 'studySessionEndTime') {
+                syncTasksFromMainApp();
+            }
+        });
+    });
+    </script>
+</body>
+</html>
+
+
